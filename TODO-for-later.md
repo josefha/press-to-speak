@@ -1,0 +1,1 @@
+[] One feature would be, or one setting, I guess, would be to capture exact words I say, or if they want to clean up the structure, add more written language like commas and dots to the polished version and fix some grammar. The default should be that the LLM fixes all of those to more written language.
