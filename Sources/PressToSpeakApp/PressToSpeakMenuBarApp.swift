@@ -9,10 +9,11 @@ struct PressToSpeakMenuBarApp: App {
             MenuBarContentView(viewModel: viewModel)
         }
 
-        Settings {
-            SettingsView(viewModel: viewModel)
-                .padding(20)
-                .frame(width: 580)
+        Window("PressToSpeak", id: "main-dashboard") {
+            MainDashboardView(viewModel: viewModel)
+                .frame(minWidth: 780, minHeight: 680)
+                .preferredColorScheme(.light)
         }
+        .defaultSize(width: 900, height: 760)
     }
 }

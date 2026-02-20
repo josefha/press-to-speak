@@ -9,7 +9,15 @@ public struct AppConfiguration {
     public let requestTimeoutSeconds: TimeInterval
 
     public init(processInfo: ProcessInfo = .processInfo, fileManager: FileManager = .default) {
-        let dotenv = DotEnvLoader.loadDefaultWorkingDirectoryEnv(fileManager: fileManager)
+        var dotenv: [String: String] = [:]
+
+        if let bundleEnvURL = Bundle.main.url(forResource: "app", withExtension: "env") {
+            dotenv.merge(DotEnvLoader.load(url: bundleEnvURL)) { _, new in new }
+        }
+
+        let workingDirectoryEnv = DotEnvLoader.loadDefaultWorkingDirectoryEnv(fileManager: fileManager)
+        dotenv.merge(workingDirectoryEnv) { _, new in new }
+
         let env = AppConfiguration.resolveEnvironment(processEnvironment: processInfo.environment, dotenv: dotenv)
 
         self.elevenLabsAPIKey = env["ELEVENLABS_API_KEY"]

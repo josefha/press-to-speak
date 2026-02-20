@@ -3,6 +3,7 @@ import SwiftUI
 
 struct MenuBarContentView: View {
     @ObservedObject var viewModel: AppViewModel
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -10,6 +11,13 @@ struct MenuBarContentView: View {
                 Text("Status:")
                     .font(.headline)
                 Text(viewModel.statusLabel)
+            }
+
+            Button {
+                openWindow(id: "main-dashboard")
+                NSApp.activate(ignoringOtherApps: true)
+            } label: {
+                Label("Open App", systemImage: "rectangle.on.rectangle")
             }
 
             Text("Hold \(viewModel.activeShortcutLabel) to speak in any app.")
@@ -58,8 +66,8 @@ struct MenuBarContentView: View {
 
             Divider()
 
-            Button("Settings…") {
-                NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+            Button("Open Settings…") {
+                openWindow(id: "main-dashboard")
                 NSApp.activate(ignoringOtherApps: true)
             }
 

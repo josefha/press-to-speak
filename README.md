@@ -76,8 +76,10 @@ This launches the menu bar app directly from SwiftPM.
 Usage:
 
 1. Open menu bar icon and grant Accessibility permission.
-2. Pick your activation shortcut in Settings.
-3. Hold shortcut to record, release to transcribe and paste.
+2. Click `Open App` to open the dashboard window.
+3. Pick your activation shortcut at the top.
+4. Hold shortcut to record, release to transcribe and paste.
+5. Use `Latest transcription`, `View Previous`, and copy buttons to reuse earlier text.
 
 Note: ElevenLabs STT does not currently accept a free-form system prompt field. In direct ElevenLabs mode, `Locale` and `Vocabulary Hints` are applied. `Default System Prompt` and `User Context` are sent in proxy mode and are kept in the architecture for future local/post-processing support.
 

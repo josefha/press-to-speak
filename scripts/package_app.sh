@@ -8,6 +8,7 @@ BUILD_BINARY=".build/release/${PRODUCT}"
 APP_DIR="dist/${APP_NAME}.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
+RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 
 swift build -c release --product "${PRODUCT}"
 
@@ -17,10 +18,15 @@ if [[ ! -f "${BUILD_BINARY}" ]]; then
 fi
 
 rm -rf "${APP_DIR}"
-mkdir -p "${MACOS_DIR}"
+mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 
 cp "${BUILD_BINARY}" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
+
+# Package local env for installed app use (optional).
+if [[ -f ".env" ]]; then
+  cp ".env" "${RESOURCES_DIR}/app.env"
+fi
 
 cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -47,6 +53,8 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
   <string>14.0</string>
   <key>LSUIElement</key>
   <true/>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>PressToSpeak records audio while you hold the hotkey to transcribe and paste your speech.</string>
 </dict>
 </plist>
 PLIST

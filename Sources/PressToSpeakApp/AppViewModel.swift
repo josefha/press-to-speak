@@ -1,4 +1,5 @@
 import Combine
+import AppKit
 import Foundation
 import PressToSpeakCore
 import PressToSpeakInfra
@@ -9,8 +10,10 @@ final class AppViewModel: ObservableObject {
     @Published var lastTranscription: String = ""
     @Published var lastError: String = ""
     @Published private(set) var hasAccessibilityPermission = false
+    @Published private(set) var historyItems: [TranscriptionHistoryItem] = []
 
     var settingsStore: SettingsStore
+    var historyStore: TranscriptionHistoryStore
 
     private let recorder: AudioRecorder
     private let paster: TextPaster
@@ -21,8 +24,12 @@ final class AppViewModel: ObservableObject {
 
     private var cancellables = Set<AnyCancellable>()
 
-    init(settingsStore: SettingsStore? = nil) {
+    init(
+        settingsStore: SettingsStore? = nil,
+        historyStore: TranscriptionHistoryStore? = nil
+    ) {
         self.settingsStore = settingsStore ?? SettingsStore()
+        self.historyStore = historyStore ?? TranscriptionHistoryStore()
 
         let configuration = AppConfiguration()
         self.recorder = AVAudioRecorderAdapter()
@@ -45,11 +52,23 @@ final class AppViewModel: ObservableObject {
         hasAccessibilityPermission = AccessibilityPermissionService.isTrusted()
         hotkeyMonitor.start()
 
+        self.historyItems = self.historyStore.items
+        if let first = self.historyStore.items.first {
+            self.lastTranscription = first.text
+        }
+
         self.settingsStore.$settings
             .map(\.activationShortcutValue)
             .removeDuplicates()
             .sink { [weak self] shortcut in
                 self?.hotkeyMonitor.updateShortcut(shortcut)
+            }
+            .store(in: &cancellables)
+
+        self.historyStore.$items
+            .sink { [weak self] items in
+                self?.historyItems = items
+                self?.lastTranscription = items.first?.text ?? ""
             }
             .store(in: &cancellables)
     }
@@ -75,19 +94,27 @@ final class AppViewModel: ObservableObject {
         settingsStore.settings.activationShortcutValue.label
     }
 
+    var selectedShortcut: ActivationShortcut {
+        get { settingsStore.settings.activationShortcutValue }
+        set { settingsStore.settings.activationShortcutValue = newValue }
+    }
+
     func startCapture() {
         guard status == .idle else {
             return
         }
 
         lastError = ""
+        AppLogger.log("Capture: start requested")
 
         do {
             try recorder.startRecording()
             status = .recording
+            AppLogger.log("Capture: recording started")
         } catch {
             status = .error
             lastError = error.localizedDescription
+            AppLogger.log("Capture: start failed: \(error.localizedDescription)")
         }
     }
 
@@ -96,6 +123,7 @@ final class AppViewModel: ObservableObject {
             return
         }
 
+        AppLogger.log("Capture: finish requested")
         let settings = settingsStore.settings
         let provider = selectedProvider(mode: settings.apiMode)
         let orchestrator = TranscriptionOrchestrator(
@@ -117,11 +145,13 @@ final class AppViewModel: ObservableObject {
                     providerOverride: provider
                 )
 
-                lastTranscription = output
+                historyStore.add(text: output)
                 status = .idle
+                AppLogger.log("Capture: transcription success (\(output.count) chars)")
             } catch {
                 status = .error
                 lastError = error.localizedDescription
+                AppLogger.log("Capture: finish failed: \(error.localizedDescription)")
             }
         }
     }
@@ -142,6 +172,16 @@ final class AppViewModel: ObservableObject {
             status = .idle
         }
         lastError = ""
+    }
+
+    func copyToClipboard(_ text: String) {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(text, forType: .string)
+    }
+
+    func clearHistory() {
+        historyStore.clear()
     }
 
     private func selectedProvider(mode: APIMode) -> TranscriptionProvider {

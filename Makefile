@@ -13,8 +13,11 @@ package-app: build
 	./scripts/package_app.sh
 
 install-local: package-app
-	rm -rf /Applications/$(APP_NAME).app
-	cp -R dist/$(APP_NAME).app /Applications/$(APP_NAME).app
+	@if [ -d /Applications/$(APP_NAME).app ]; then \
+		ditto dist/$(APP_NAME).app /Applications/$(APP_NAME).app; \
+	else \
+		cp -R dist/$(APP_NAME).app /Applications/$(APP_NAME).app; \
+	fi
 	@echo "Installed /Applications/$(APP_NAME).app"
 
 clean:
