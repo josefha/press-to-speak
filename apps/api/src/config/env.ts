@@ -44,7 +44,7 @@ const envSchema = z.object({
   OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),
   OPENAI_API_BASE_URL: z.string().url().default("https://api.openai.com/v1"),
   OPENAI_MODEL: z.string().default("gpt-5-mini"),
-  OPENAI_REWRITE_TIMEOUT_MS: z.coerce.number().int().positive().default(700)
+  OPENAI_REWRITE_TIMEOUT_MS: z.coerce.number().int().positive().default(2000)
 });
 
 const parsed = envSchema.safeParse(process.env);

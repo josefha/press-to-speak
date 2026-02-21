@@ -4,6 +4,7 @@ import {
 } from "../external/elevenLabsClient";
 import { rewriteTranscriptWithOpenAI } from "../external/openAIClient";
 import { env } from "../config/env";
+import { HttpError } from "../lib/httpError";
 import { logger } from "../lib/logger";
 
 export type VoiceToTextInput = {
@@ -103,6 +104,8 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
   } catch (error) {
     const rewriteLatencyMs = Date.now() - rewriteStartedAt;
     const rewriteError = error instanceof Error ? error.message : String(error);
+    const rewriteErrorDetails = error instanceof HttpError ? error.details : undefined;
+    const rewriteErrorStatusCode = error instanceof HttpError ? error.statusCode : undefined;
     const fallbackLog: Record<string, unknown> = {
       stage: "openai_rewrite",
       rewriteModel: env.OPENAI_MODEL,
@@ -111,6 +114,12 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
       rewriteError,
       comparison: compareTexts(sttResult.rawText, sttResult.rawText)
     };
+    if (rewriteErrorStatusCode !== undefined) {
+      fallbackLog.rewriteErrorStatusCode = rewriteErrorStatusCode;
+    }
+    if (rewriteErrorDetails !== undefined) {
+      fallbackLog.rewriteErrorDetails = rewriteErrorDetails;
+    }
     if (env.LOG_PIPELINE_TEXT) {
       fallbackLog.rawText = clipText(sttResult.rawText);
       fallbackLog.cleanText = clipText(sttResult.rawText);

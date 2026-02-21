@@ -42,6 +42,9 @@ export async function rewriteTranscriptWithOpenAI(rawText: string): Promise<Open
         instructions: CLEANUP_INSTRUCTIONS,
         input: transcript,
         max_output_tokens: Math.min(Math.max(transcript.length * 2, 120), 1_000),
+        reasoning: {
+          effort: "minimal"
+        },
         store: false
       }),
       signal: controller.signal
