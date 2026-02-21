@@ -14,10 +14,9 @@
 3. API authenticates user and checks quota/policy.
 4. API forwards to ElevenLabs STT.
 5. API returns raw transcript immediately when available.
-6. API runs post-processing pipeline:
-   - deterministic cleanup rules (fast)
-   - snippet expansion / dictionary replacements
-   - optional short LLM polish pass
+6. API runs rewrite pipeline:
+   - OpenAI `gpt-5-mini` rewrite for punctuation/grammar cleanup
+   - future snippet expansion / dictionary replacements
 7. API streams/publishes polished result update.
 
 ## Why Keep This In Your API Layer
@@ -37,13 +36,8 @@ Those are business behaviors and should remain under your control.
 Fast path:
 
 - return raw transcript as soon as STT completes.
-- deterministic rules execute in-process (<10-30ms typical for short utterances).
-
-Optional polish path:
-
-- invoke a small/fast rewrite model only for final transcript.
-- use strict timeout budget (for example 300-700ms).
-- if timeout/failure: return deterministic result; do not block UX.
+- invoke OpenAI rewrite with a strict timeout budget (for example 300-700ms).
+- if timeout/failure: return raw transcript fallback; do not block UX.
 
 UI behavior:
 
@@ -63,11 +57,10 @@ UI behavior:
 - request shaping
 - retries/backoff for transient errors
 
-3. `postprocess-service`
-- deterministic cleanup rules
-- punctuation and casing normalizer
-- snippet expansion (global + user dictionary)
-- optional LLM rewrite adapter
+3. `rewrite-service`
+- OpenAI rewrite adapter
+- future snippet expansion (global + user dictionary)
+- fallback handling when rewrite fails/timeouts
 
 4. `usage-service`
 - capture per-user duration/characters/request counts
@@ -92,11 +85,11 @@ Supabase can own auth + relational tables initially.
 
 ## API Endpoints (Proposed)
 
-1. `POST /v1/transcriptions`
+1. `POST /v1/voice-to-text`
 - multipart audio upload
 - returns raw transcript + request id + timing
 
-2. `GET /v1/transcriptions/:id`
+2. `GET /v1/voice-to-text/:id`
 - returns latest state (`raw`, `processed`, `final`)
 
 3. `POST /v1/snippets`
@@ -108,17 +101,14 @@ Supabase can own auth + relational tables initially.
 5. `POST /v1/usage/heartbeat` (optional)
 - client telemetry for UX correlation only
 
-## Post-Processing Pipeline Design
+## Rewrite Pipeline Design
 
 Order matters for quality + speed:
 
-1. normalize whitespace and punctuation tokens
-2. remove filler tokens from allowlist with boundary-aware matching
-3. apply dictionary replacements/snippets (deterministic)
-4. grammar/style polish (optional LLM)
-5. final formatting policy (sentence case, trailing punctuation rules)
-
-All deterministic steps should be idempotent and unit-tested.
+1. send transcript text to OpenAI with constrained rewrite instructions
+2. return cleaned text when rewrite succeeds
+3. fallback to raw transcript on timeout/error
+4. future: apply snippet expansions after rewrite (or in-model, then deterministic post-check)
 
 ## LLM Provider Strategy for Fast Short-Text Polish
 
@@ -138,7 +128,7 @@ Guardrails:
 - hard max input length
 - strict timeout
 - JSON schema output or constrained format
-- fallback to deterministic output on timeout/error
+- fallback to raw output on timeout/error
 
 ## Security and Spend Controls
 
@@ -154,7 +144,7 @@ Phase 1:
 
 - API proxy to ElevenLabs
 - usage metering + per-user limits
-- deterministic cleanup only
+- OpenAI rewrite integration
 
 Phase 2:
 

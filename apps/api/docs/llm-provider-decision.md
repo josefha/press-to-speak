@@ -25,11 +25,11 @@ Your rewrite task is short-text, well-defined, and latency-sensitive:
 
 ## Runtime Policy
 
-1. Always run deterministic rules first.
-2. Call LLM only on final transcript segments.
+1. Call LLM on final transcript segments.
+2. Keep prompt constrained to cleanup/restructure only.
 3. Use strict timeout budget (example 500ms).
-4. If timeout/failure, return deterministic output and continue.
-5. Keep LLM response structured (JSON schema) for predictable merges.
+4. If timeout/failure, return raw transcript output and continue.
+5. Keep response parsing constrained and validated before returning to clients.
 
 ## Suggested Rewrite Contract
 
@@ -44,9 +44,7 @@ Input:
 Output (strict JSON):
 
 - `clean_text`
-- `applied_snippets[]`
-- `removed_fillers[]`
-- `confidence`
+- `confidence` (optional)
 
 ## Acceptance Benchmarks Before Production
 

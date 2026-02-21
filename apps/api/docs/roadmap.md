@@ -5,6 +5,7 @@
 - initialize Node + TypeScript + Express project
 - add lint, test, and build scripts
 - add env schema and runtime config loader
+- split `external` adapters from `services` orchestration layer
 
 ## Phase B: Transcription proxy MVP
 
@@ -13,11 +14,11 @@
 - auth middleware placeholder
 - request logging and timing metrics
 
-## Phase C: Post-processing MVP
+## Phase C: Rewrite MVP
 
-- deterministic filler removal
-- punctuation/grammar normalization rules
-- snippet mapping engine (in-memory, then DB-backed)
+- OpenAI `gpt-5-mini` rewrite integration
+- timeout-bounded rewrite with raw transcript fallback
+- response metadata for rewrite status/warnings
 
 ## Phase D: Users + Data + billing primitives
 
@@ -25,8 +26,8 @@
 - quota checks
 - billing event abstraction for future Polar integration
 
-## Phase E: Optional LLM polish
+## Phase E: Snippets + richer transforms
 
-- provider abstraction (`rewriteProvider` interface)
-- timeout-bounded rewrite pass
-- A/B latency and quality evaluation
+- snippet mapping engine (DB-backed)
+- user/team dictionary rules
+- evaluate optional secondary rewrite providers

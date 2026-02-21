@@ -3,7 +3,7 @@
 This repository now contains:
 
 - `apps/mac`: the existing PressToSpeak macOS menu bar app (Swift/SwiftUI).
-- `apps/api`: docs-only architecture for the upcoming production API middle layer.
+- `apps/api`: TypeScript Express API middle layer (scaffolded).
 
 ## Why This Layout
 
@@ -19,7 +19,7 @@ So the mac app remains focused on UX, while the API layer owns policy, metering,
 ## Current Status
 
 - `apps/mac` is fully runnable today.
-- `apps/api` currently contains architecture docs only (no runtime scaffolding yet).
+- `apps/api` now has a working scaffold and `POST /v1/voice-to-text`.
 
 ## Common Commands (from repo root)
 
@@ -32,12 +32,21 @@ make install-local
 
 These commands forward to `apps/mac`.
 
+API commands:
+
+```bash
+make api-install
+make api-dev
+make api-typecheck
+make api-build
+```
+
 ## Monorepo Structure
 
 ```text
 apps/
-  mac/    # Swift macOS app (existing implementation)
-  api/    # TypeScript Express API (planned, docs-only for now)
+  mac/    # Swift macOS app
+  api/    # TypeScript Express API middle layer
 ```
 
 ## API Architecture Docs
@@ -46,12 +55,3 @@ apps/
 - Detailed plan: `apps/api/docs/architecture.md`
 - LLM provider decision: `apps/api/docs/llm-provider-decision.md`
 - Implementation roadmap: `apps/api/docs/roadmap.md`
-
-## Next Step
-
-When you are ready, we can scaffold `apps/api` as a TypeScript Express service with:
-
-- auth + per-user usage accounting hooks (Supabase)
-- transcription proxy endpoint to ElevenLabs
-- deterministic cleanup pipeline
-- optional fast LLM rewrite pass

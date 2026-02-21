@@ -3,15 +3,15 @@
 This is a monorepo with two apps:
 
 - `apps/mac`: PressToSpeak macOS menu bar app (Swift + SwiftUI).
-- `apps/api`: planned TypeScript Express API layer (docs-only for now).
+- `apps/api`: TypeScript Express API layer.
 
 ## Primary Product Direction
 
 1. Keep hold-to-talk UX in mac app.
 2. Route production transcription traffic through your API for key safety and spend control.
 3. Keep a thin, fast post-processing layer in API:
-- deterministic cleanup first
-- optional short LLM polish second
+- OpenAI `gpt-5-mini` rewrite for cleanup/grammar
+- raw transcript fallback on rewrite timeout/error
 - snippet/keyword expansion as product logic
 
 ## Monorepo Commands
@@ -23,6 +23,8 @@ make run
 make build
 make package-app
 make install-local
+make api-dev
+make api-build
 ```
 
 These forward to `apps/mac`.
@@ -31,6 +33,7 @@ These forward to `apps/mac`.
 
 - mac app behavior/UI: `apps/mac/Sources/**`
 - mac packaging/build scripts: `apps/mac/scripts/**`
+- API service code: `apps/api/src/**`
 - API system design: `apps/api/docs/**`
 
 ## Guardrails
