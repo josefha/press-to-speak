@@ -15,7 +15,7 @@ Use this skill when working on PressToSpeak auth, Supabase integration, and sche
 - Keep `USER_AUTH_MODE=required` in production.
 - Keep `ALLOW_UNAUTHENTICATED_BYOK=false` in production unless intentionally opening a free tier.
 - Use `PROXY_SHARED_API_KEY` between mac app and API.
-- Prefer `SUPABASE_PUBLISHABLE_KEY` in client apps (fallback `SUPABASE_ANON_KEY` supported).
+- Use `SUPABASE_PUBLISHABLE_KEY` in client apps.
 - Never expose Supabase secret/service-role keys in the mac app.
 - Keep request log redaction for `Authorization`, `x-api-key`, `x-openai-api-key`, `x-elevenlabs-api-key`.
 

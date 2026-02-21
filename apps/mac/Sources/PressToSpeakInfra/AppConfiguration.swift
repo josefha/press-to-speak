@@ -8,8 +8,6 @@ public struct AppConfiguration {
     public let proxyAPIKey: String?
     public let supabaseURL: URL?
     public let supabasePublishableKey: String?
-    public let supabaseAnonKey: String?
-    public let supabaseClientKey: String?
     public let requestTimeoutSeconds: TimeInterval
 
     public init(processInfo: ProcessInfo = .processInfo, fileManager: FileManager = .default) {
@@ -44,8 +42,6 @@ public struct AppConfiguration {
         }
 
         self.supabasePublishableKey = AppConfiguration.normalized(env["SUPABASE_PUBLISHABLE_KEY"])
-        self.supabaseAnonKey = AppConfiguration.normalized(env["SUPABASE_ANON_KEY"])
-        self.supabaseClientKey = self.supabasePublishableKey ?? self.supabaseAnonKey
 
         if let timeoutRaw = env["TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS"],
            let timeout = TimeInterval(timeoutRaw),

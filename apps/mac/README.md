@@ -43,7 +43,7 @@ Edit `.env` and set at least:
 
 Optional:
 
-- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (preferred for PressToSpeak Account mode; `SUPABASE_ANON_KEY` is still supported)
+- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (required for PressToSpeak Account mode)
 - `TRANSCRIPTION_PROXY_API_KEY`
 - `ELEVENLABS_MODEL_ID` (`scribe_v1` or `scribe_v2`)
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`

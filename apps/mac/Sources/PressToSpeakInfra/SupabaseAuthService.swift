@@ -10,7 +10,7 @@ public enum SupabaseAuthError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .missingConfiguration:
-            return "Supabase configuration is missing. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY)."
+            return "Supabase configuration is missing. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY."
         case .insecureConfiguration:
             return "Supabase URL must use HTTPS in non-local environments."
         case .invalidCredentials:
@@ -158,7 +158,7 @@ public final class SupabaseAuthService {
     ) async throws -> Data {
         guard
             let baseURL = configuration.supabaseURL,
-            let clientKey = normalize(configuration.supabaseClientKey)
+            let clientKey = normalize(configuration.supabasePublishableKey)
         else {
             throw SupabaseAuthError.missingConfiguration
         }

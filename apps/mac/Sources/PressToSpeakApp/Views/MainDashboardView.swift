@@ -216,7 +216,7 @@ struct MainDashboardView: View {
                 .foregroundStyle(.secondary)
 
             if !viewModel.isSupabaseConfigured {
-                Text("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in app environment.")
+                            Text("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY in app environment.")
                     .font(.caption)
                     .foregroundStyle(.red)
             }

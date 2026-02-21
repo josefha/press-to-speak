@@ -137,7 +137,7 @@ final class AppViewModel: ObservableObject {
 
     var isSupabaseConfigured: Bool {
         configuration.supabaseURL != nil &&
-            normalizedNonEmpty(configuration.supabaseClientKey) != nil
+            normalizedNonEmpty(configuration.supabasePublishableKey) != nil
     }
 
     func startCapture() {
