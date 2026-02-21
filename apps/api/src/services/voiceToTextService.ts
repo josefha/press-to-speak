@@ -12,6 +12,14 @@ export type VoiceToTextInput = {
   fileName: string;
   mimeType?: string;
   sttOptions?: ElevenLabsRequestOptions;
+  providerOverrides?: {
+    elevenLabsApiKey?: string;
+    elevenLabsBaseUrl?: string;
+    openAIApiKey?: string;
+    openAIBaseUrl?: string;
+    openAIModel?: string;
+    openAITimeoutMs?: number;
+  };
   requestId?: string;
   userId?: string;
 };
@@ -50,7 +58,9 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
     fileBuffer: input.fileBuffer,
     fileName: input.fileName,
     mimeType: input.mimeType,
-    options: input.sttOptions
+    options: input.sttOptions,
+    apiKey: input.providerOverrides?.elevenLabsApiKey,
+    baseUrl: input.providerOverrides?.elevenLabsBaseUrl
   });
   const sttLatencyMs = Date.now() - sttStartedAt;
 
@@ -72,7 +82,12 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
   const rewriteStartedAt = Date.now();
 
   try {
-    const rewriteResult = await rewriteTranscriptWithOpenAI(sttResult.rawText);
+    const rewriteResult = await rewriteTranscriptWithOpenAI(sttResult.rawText, {
+      apiKey: input.providerOverrides?.openAIApiKey,
+      baseUrl: input.providerOverrides?.openAIBaseUrl,
+      model: input.providerOverrides?.openAIModel,
+      timeoutMs: input.providerOverrides?.openAITimeoutMs
+    });
     const rewriteLatencyMs = Date.now() - rewriteStartedAt;
     const comparison = compareTexts(sttResult.rawText, rewriteResult.cleanText);
 
@@ -108,7 +123,7 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
     const rewriteErrorStatusCode = error instanceof HttpError ? error.statusCode : undefined;
     const fallbackLog: Record<string, unknown> = {
       stage: "openai_rewrite",
-      rewriteModel: env.OPENAI_MODEL,
+      rewriteModel: input.providerOverrides?.openAIModel ?? env.OPENAI_MODEL,
       rewriteLatencyMs,
       rewriteStatus: "fallback_raw",
       rewriteError,
@@ -130,7 +145,7 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
       rawText: sttResult.rawText,
       cleanText: sttResult.rawText,
       sttModelId: sttResult.modelId,
-      rewriteModel: env.OPENAI_MODEL,
+      rewriteModel: input.providerOverrides?.openAIModel ?? env.OPENAI_MODEL,
       rewriteStatus: "fallback_raw",
       sttLatencyMs,
       rewriteLatencyMs,

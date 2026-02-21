@@ -7,6 +7,13 @@ export type OpenAIRewriteResult = {
   providerPayload: unknown;
 };
 
+export type OpenAIRewriteOptions = {
+  apiKey?: string;
+  baseUrl?: string;
+  model?: string;
+  timeoutMs?: number;
+};
+
 const CLEANUP_INSTRUCTIONS = [
   "You are a transcript cleanup engine.",
   "Rewrite spoken transcript into clean written text.",
@@ -16,29 +23,41 @@ const CLEANUP_INSTRUCTIONS = [
   "Return only the final cleaned text with no extra commentary."
 ].join(" ");
 
-export async function rewriteTranscriptWithOpenAI(rawText: string): Promise<OpenAIRewriteResult> {
+export async function rewriteTranscriptWithOpenAI(
+  rawText: string,
+  options?: OpenAIRewriteOptions
+): Promise<OpenAIRewriteResult> {
   const transcript = rawText.trim();
+  const model = normalizeOptional(options?.model) ?? env.OPENAI_MODEL;
+  const apiKey = normalizeOptional(options?.apiKey) ?? env.OPENAI_API_KEY;
+  const timeoutMs = options?.timeoutMs ?? env.OPENAI_REWRITE_TIMEOUT_MS;
+  const baseUrl = normalizeOptional(options?.baseUrl) ?? env.OPENAI_API_BASE_URL;
+
+  if (!apiKey) {
+    throw new HttpError(400, "OpenAI API key is required");
+  }
+
   if (!transcript) {
     return {
       cleanText: "",
-      model: env.OPENAI_MODEL,
+      model,
       providerPayload: { skipped: true }
     };
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), env.OPENAI_REWRITE_TIMEOUT_MS);
-  const endpoint = `${env.OPENAI_API_BASE_URL.replace(/\/+$/, "")}/responses`;
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const endpoint = `${baseUrl.replace(/\/+$/, "")}/responses`;
 
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${env.OPENAI_API_KEY}`
+        Authorization: `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model: env.OPENAI_MODEL,
+        model,
         instructions: CLEANUP_INSTRUCTIONS,
         input: transcript,
         max_output_tokens: Math.min(Math.max(transcript.length * 2, 120), 1_000),
@@ -69,7 +88,7 @@ export async function rewriteTranscriptWithOpenAI(rawText: string): Promise<Open
 
     return {
       cleanText,
-      model: env.OPENAI_MODEL,
+      model,
       providerPayload: payload
     };
   } catch (error) {
@@ -79,7 +98,7 @@ export async function rewriteTranscriptWithOpenAI(rawText: string): Promise<Open
 
     if (error instanceof Error && error.name === "AbortError") {
       throw new HttpError(504, "OpenAI rewrite request timed out", {
-        timeoutMs: env.OPENAI_REWRITE_TIMEOUT_MS
+        timeoutMs
       });
     }
 
@@ -89,6 +108,15 @@ export async function rewriteTranscriptWithOpenAI(rawText: string): Promise<Open
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function normalizeOptional(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 async function parseProviderPayload(response: Response): Promise<unknown> {

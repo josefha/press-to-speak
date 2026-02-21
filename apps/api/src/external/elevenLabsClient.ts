@@ -15,6 +15,8 @@ export type ElevenLabsTranscriptionInput = {
   fileName: string;
   mimeType?: string;
   options?: ElevenLabsRequestOptions;
+  apiKey?: string;
+  baseUrl?: string;
 };
 
 export type ElevenLabsTranscriptionResult = {
@@ -29,6 +31,11 @@ export async function transcribeWithElevenLabs(
   input: ElevenLabsTranscriptionInput
 ): Promise<ElevenLabsTranscriptionResult> {
   const modelId = input.options?.modelId ?? env.ELEVENLABS_MODEL_ID;
+  const apiKey = normalizeOptional(input.apiKey) ?? env.ELEVENLABS_API_KEY;
+  if (!apiKey) {
+    throw new HttpError(400, "ElevenLabs API key is required");
+  }
+
   const formData = new FormData();
 
   const safeFileName = input.fileName || `audio-${Date.now()}.wav`;
@@ -50,13 +57,14 @@ export async function transcribeWithElevenLabs(
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), env.TRANSCRIPTION_REQUEST_TIMEOUT_MS);
 
-  const endpoint = `${env.ELEVENLABS_API_BASE_URL.replace(/\/+$/, "")}/v1/speech-to-text`;
+  const baseUrl = normalizeOptional(input.baseUrl) ?? env.ELEVENLABS_API_BASE_URL;
+  const endpoint = `${baseUrl.replace(/\/+$/, "")}/v1/speech-to-text`;
 
   try {
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
-        "xi-api-key": env.ELEVENLABS_API_KEY
+        "xi-api-key": apiKey
       },
       body: formData,
       signal: controller.signal
@@ -101,6 +109,15 @@ export async function transcribeWithElevenLabs(
   } finally {
     clearTimeout(timeout);
   }
+}
+
+function normalizeOptional(value: string | undefined): string | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
 }
 
 function appendIfDefined(formData: FormData, key: string, value: string | number | boolean | undefined): void {

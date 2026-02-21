@@ -138,6 +138,13 @@ Guardrails:
 4. Attach request IDs and cost estimates to usage events.
 5. Add circuit breakers if provider error rate spikes.
 
+Current implementation status:
+
+- optional shared ingress key (`PROXY_SHARED_API_KEY`) for proxy callers
+- Supabase JWT verification middleware with `USER_AUTH_MODE=off|optional|required`
+- optional unauthenticated BYOK path (`x-openai-api-key` + `x-elevenlabs-api-key`) with rate limiting
+- usage events include authenticated vs unauthenticated source metadata
+
 ## Rollout Plan
 
 Phase 1:

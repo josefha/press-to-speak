@@ -11,7 +11,7 @@
 
 - `POST /v1/voice-to-text` multipart endpoint
 - ElevenLabs adapter
-- auth middleware placeholder
+- auth middleware baseline (shared proxy key + Supabase JWT verification modes)
 - request logging and timing metrics
 
 ## Phase C: Rewrite MVP
@@ -22,7 +22,8 @@
 
 ## Phase D: Users + Data + billing primitives
 
-- Supabase integration for user + usage events
+- Supabase integration for user + usage events (JWT verification implemented; DB persistence pending)
+- BYOK open-route key overrides + unauthenticated rate limiting baseline
 - quota checks
 - billing event abstraction for future Polar integration
 

@@ -3,7 +3,16 @@ import { env } from "../config/env";
 
 const loggerOptions: LoggerOptions = {
   name: "press-to-speak-api",
-  level: env.LOG_LEVEL
+  level: env.LOG_LEVEL,
+  redact: {
+    paths: [
+      "req.headers.authorization",
+      "req.headers.x-api-key",
+      "req.headers.x-openai-api-key",
+      "req.headers.x-elevenlabs-api-key"
+    ],
+    censor: "[REDACTED]"
+  }
 };
 
 if (env.LOG_PRETTY) {

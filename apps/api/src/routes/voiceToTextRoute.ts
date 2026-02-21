@@ -3,6 +3,8 @@ import multer from "multer";
 import { env } from "../config/env";
 import { HttpError } from "../lib/httpError";
 import { parseBoolean, parseNumber } from "../lib/parse";
+import { authenticateRequest, getRequestUserContext } from "../middleware/authenticateRequest";
+import { enforceUnauthenticatedRateLimit } from "../middleware/unauthenticatedRateLimit";
 import { processVoiceToText } from "../services/voiceToTextService";
 import { recordUsageEvent } from "../services/usageMeteringService";
 
@@ -17,6 +19,8 @@ export const voiceToTextRouter = Router();
 
 voiceToTextRouter.post(
   "/v1/voice-to-text",
+  authenticateRequest,
+  enforceUnauthenticatedRateLimit,
   upload.single("file"),
   async (req, res, next): Promise<void> => {
     try {
@@ -24,7 +28,14 @@ voiceToTextRouter.post(
         throw new HttpError(400, "Missing multipart file field 'file'");
       }
 
-      const userId = extractUserId(req.header("x-user-id"));
+      const user = getRequestUserContext(res);
+      const userId = user.userId;
+      const providerOverrides = extractProviderOverrides(req);
+
+      if (!user.isAuthenticated && providerOverrides && !env.ALLOW_UNAUTHENTICATED_BYOK) {
+        throw new HttpError(403, "Bring-your-own-keys requests require authentication in this environment");
+      }
+
       const requestId = String(res.locals.requestId ?? "unknown");
       const startedAt = Date.now();
 
@@ -41,7 +52,8 @@ voiceToTextRouter.post(
           diarize: parseBoolean(req.body.diarize),
           tagAudioEvents: parseBoolean(req.body.tag_audio_events),
           keyterms: stringOrUndefined(req.body.keyterms)
-        }
+        },
+        providerOverrides
       });
 
       const totalLatencyMs = Date.now() - startedAt;
@@ -53,7 +65,9 @@ voiceToTextRouter.post(
         rawCharacters: voiceToTextResult.rawText.length,
         cleanCharacters: voiceToTextResult.cleanText.length,
         sttLatencyMs: voiceToTextResult.sttLatencyMs,
-        rewriteLatencyMs: voiceToTextResult.rewriteLatencyMs
+        rewriteLatencyMs: voiceToTextResult.rewriteLatencyMs,
+        isAuthenticated: user.isAuthenticated,
+        authSource: user.authSource
       });
 
       res.status(200).json({
@@ -98,11 +112,41 @@ function stringOrUndefined(value: unknown): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
-function extractUserId(value: string | undefined): string {
+function extractProviderOverrides(req: {
+  header(name: string): string | undefined;
+}): {
+  elevenLabsApiKey?: string;
+  openAIApiKey?: string;
+} | undefined {
+  const elevenLabsApiKey = normalizeHeader(req.header("x-elevenlabs-api-key"));
+  const openAIApiKey = normalizeHeader(req.header("x-openai-api-key"));
+
+  if (!elevenLabsApiKey && !openAIApiKey) {
+    return undefined;
+  }
+
+  if (!elevenLabsApiKey || !openAIApiKey) {
+    throw new HttpError(
+      400,
+      "Both x-elevenlabs-api-key and x-openai-api-key headers are required when using bring-your-own-keys mode"
+    );
+  }
+
+  if (elevenLabsApiKey.length > env.BYOK_HEADER_MAX_CHARS || openAIApiKey.length > env.BYOK_HEADER_MAX_CHARS) {
+    throw new HttpError(400, "Bring-your-own-keys header value is too long");
+  }
+
+  return {
+    elevenLabsApiKey,
+    openAIApiKey
+  };
+}
+
+function normalizeHeader(value: string | undefined): string | undefined {
   if (!value) {
-    return "anonymous";
+    return undefined;
   }
 
   const normalized = value.trim();
-  return normalized.length > 0 ? normalized : "anonymous";
+  return normalized.length > 0 ? normalized : undefined;
 }

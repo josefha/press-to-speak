@@ -10,6 +10,8 @@ export type UsageEvent = {
   cleanCharacters: number;
   sttLatencyMs: number;
   rewriteLatencyMs: number;
+  isAuthenticated: boolean;
+  authSource: "supabase" | "legacy_header" | "byok_open" | "anonymous";
 };
 
 export async function recordUsageEvent(event: UsageEvent): Promise<void> {
