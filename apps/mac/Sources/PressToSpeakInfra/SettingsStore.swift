@@ -11,7 +11,7 @@ public struct AppSettings: Codable {
     public var locale: String
 
     public init(
-        apiMode: APIMode = .bringYourOwnElevenLabsKey,
+        apiMode: APIMode = .pressToSpeakAccount,
         activationShortcut: String = KeyboardShortcut.defaultShortcut.storageValue,
         defaultSystemPrompt: String = "Transcribe accurately. Produce polished written language with correct punctuation and grammar.",
         userContext: String = "",

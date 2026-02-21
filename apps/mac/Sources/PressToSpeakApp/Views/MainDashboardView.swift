@@ -164,11 +164,24 @@ struct MainDashboardView: View {
                 .font(.headline)
 
             Picker("API Mode", selection: $viewModel.settingsStore.settings.apiMode) {
-                ForEach(APIMode.allCases) { mode in
+                ForEach(viewModel.availableAPIModes) { mode in
                     Text(mode.label).tag(mode)
                 }
             }
             .pickerStyle(.segmented)
+
+            if !viewModel.showAdvancedModeOptions {
+                Button("Show Advanced Mode (Bring Your Own Keys)") {
+                    viewModel.showAdvancedModeOptions = true
+                }
+                .buttonStyle(.bordered)
+            }
+
+            if viewModel.settingsStore.settings.apiMode == .pressToSpeakAccount {
+                accountModeSettings
+            } else {
+                byokModeSettings
+            }
 
             TextField("Locale (optional)", text: $viewModel.settingsStore.settings.locale)
                 .textFieldStyle(.roundedBorder)
@@ -192,6 +205,81 @@ struct MainDashboardView: View {
             )
         }
         .cardStyle()
+    }
+
+    private var accountModeSettings: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("PressToSpeak Account")
+                .font(.subheadline.weight(.semibold))
+            Text(viewModel.signedInAccountLabel)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            if !viewModel.isSupabaseConfigured {
+                Text("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in app environment.")
+                    .font(.caption)
+                    .foregroundStyle(.red)
+            }
+
+            if viewModel.isAccountAuthenticated {
+                Button("Sign Out") {
+                    viewModel.signOutFromPressToSpeakAccount()
+                }
+                .buttonStyle(.bordered)
+            } else {
+                TextField("Email", text: $viewModel.accountEmailInput)
+                    .textFieldStyle(.roundedBorder)
+                SecureField("Password", text: $viewModel.accountPasswordInput)
+                    .textFieldStyle(.roundedBorder)
+
+                HStack(spacing: 10) {
+                    Button("Sign In") {
+                        viewModel.signInWithPressToSpeakAccount()
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(viewModel.isAuthInProgress)
+
+                    Button("Sign Up") {
+                        viewModel.signUpWithPressToSpeakAccount()
+                    }
+                    .buttonStyle(.bordered)
+                    .disabled(viewModel.isAuthInProgress)
+                }
+            }
+        }
+        .padding(10)
+        .background(AppPalette.softGray)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+
+    private var byokModeSettings: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Bring Your Own Keys")
+                .font(.subheadline.weight(.semibold))
+            Text("Advanced mode. Your keys are stored in macOS Keychain.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            SecureField("OpenAI API Key", text: $viewModel.bringYourOwnOpenAIKeyInput)
+                .textFieldStyle(.roundedBorder)
+            SecureField("ElevenLabs API Key", text: $viewModel.bringYourOwnElevenLabsKeyInput)
+                .textFieldStyle(.roundedBorder)
+
+            HStack(spacing: 10) {
+                Button("Save Keys") {
+                    viewModel.saveBringYourOwnProviderKeys()
+                }
+                .buttonStyle(.borderedProminent)
+
+                Button("Clear Keys") {
+                    viewModel.clearBringYourOwnProviderKeys()
+                }
+                .buttonStyle(.bordered)
+            }
+        }
+        .padding(10)
+        .background(AppPalette.softGray)
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var latestTranscriptionSection: some View {

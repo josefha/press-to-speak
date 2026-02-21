@@ -317,18 +317,37 @@ public enum ActivationShortcut: String, Codable, CaseIterable, Identifiable {
 }
 
 public enum APIMode: String, Codable, CaseIterable, Identifiable {
-    case bringYourOwnElevenLabsKey
-    case proxy
+    case pressToSpeakAccount
+    case bringYourOwnKeys
 
     public var id: String { rawValue }
 
     public var label: String {
         switch self {
-        case .bringYourOwnElevenLabsKey:
-            return "Bring Your Own ElevenLabs Key"
-        case .proxy:
-            return "Use Proxy API"
+        case .pressToSpeakAccount:
+            return "PressToSpeak Account"
+        case .bringYourOwnKeys:
+            return "Bring Your Own Keys"
         }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self)
+
+        switch rawValue {
+        case "pressToSpeakAccount", "proxy":
+            self = .pressToSpeakAccount
+        case "bringYourOwnKeys", "bringYourOwnElevenLabsKey":
+            self = .bringYourOwnKeys
+        default:
+            self = .pressToSpeakAccount
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
     }
 }
 

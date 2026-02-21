@@ -6,6 +6,10 @@ public struct AppConfiguration {
     public let elevenLabsModelID: String
     public let proxyURL: URL?
     public let proxyAPIKey: String?
+    public let supabaseURL: URL?
+    public let supabasePublishableKey: String?
+    public let supabaseAnonKey: String?
+    public let supabaseClientKey: String?
     public let requestTimeoutSeconds: TimeInterval
 
     public init(processInfo: ProcessInfo = .processInfo, fileManager: FileManager = .default) {
@@ -32,6 +36,17 @@ public struct AppConfiguration {
         }
 
         self.proxyAPIKey = env["TRANSCRIPTION_PROXY_API_KEY"]
+
+        if let rawSupabaseURL = env["SUPABASE_URL"], !rawSupabaseURL.isEmpty {
+            self.supabaseURL = URL(string: rawSupabaseURL)
+        } else {
+            self.supabaseURL = nil
+        }
+
+        self.supabasePublishableKey = AppConfiguration.normalized(env["SUPABASE_PUBLISHABLE_KEY"])
+        self.supabaseAnonKey = AppConfiguration.normalized(env["SUPABASE_ANON_KEY"])
+        self.supabaseClientKey = self.supabasePublishableKey ?? self.supabaseAnonKey
+
         if let timeoutRaw = env["TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS"],
            let timeout = TimeInterval(timeoutRaw),
            timeout > 0 {
@@ -47,5 +62,14 @@ public struct AppConfiguration {
             merged[key] = value
         }
         return merged
+    }
+
+    private static func normalized(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 }

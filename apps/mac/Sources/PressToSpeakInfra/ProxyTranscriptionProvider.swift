@@ -24,10 +24,16 @@ public enum ProxyProviderError: LocalizedError {
 public final class ProxyTranscriptionProvider: TranscriptionProvider {
     private let configuration: AppConfiguration
     private let session: URLSession
+    private let additionalHeaders: [String: String]
 
-    public init(configuration: AppConfiguration, session: URLSession = .shared) {
+    public init(
+        configuration: AppConfiguration,
+        session: URLSession = .shared,
+        additionalHeaders: [String: String] = [:]
+    ) {
         self.configuration = configuration
         self.session = session
+        self.additionalHeaders = additionalHeaders
     }
 
     public func transcribe(_ request: TranscriptionRequest) async throws -> TranscriptionResult {
@@ -63,8 +69,15 @@ public final class ProxyTranscriptionProvider: TranscriptionProvider {
         urlRequest.setValue("application/json", forHTTPHeaderField: "Accept")
 
         if let key = configuration.proxyAPIKey, !key.isEmpty {
-            urlRequest.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
             urlRequest.setValue(key, forHTTPHeaderField: "x-api-key")
+        }
+
+        for (headerName, value) in additionalHeaders {
+            let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !normalized.isEmpty else {
+                continue
+            }
+            urlRequest.setValue(normalized, forHTTPHeaderField: headerName)
         }
 
         urlRequest.httpBody = body

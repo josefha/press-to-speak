@@ -1,6 +1,6 @@
 # PressToSpeak (macOS Menu Bar App)
 
-Swift/SwiftUI macOS menu bar app for hold-to-talk voice transcription with ElevenLabs.
+Swift/SwiftUI macOS menu bar app for hold-to-talk voice transcription via the PressToSpeak API.
 
 ## Current Status
 
@@ -8,8 +8,9 @@ This repository now includes the MVP end-to-end flow:
 
 - global hold-to-talk hotkey (configurable in Settings)
 - AVFoundation microphone recording
-- ElevenLabs `v1/speech-to-text` transcription
-- optional proxy API mode
+- default `PressToSpeak Account` mode with Supabase sign-up/sign-in
+- advanced `Bring Your Own Keys` mode (OpenAI + ElevenLabs keys stored in Keychain)
+- proxy API mode for all transcription traffic
 - automatic paste into active app with clipboard restore
 - menu bar settings and non-Xcode build/package scripts
 
@@ -38,17 +39,18 @@ cp .env.example .env
 
 Edit `.env` and set at least:
 
-- `ELEVENLABS_API_KEY`
+- `TRANSCRIPTION_PROXY_URL`
 
 Optional:
 
+- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (preferred for PressToSpeak Account mode; `SUPABASE_ANON_KEY` is still supported)
+- `TRANSCRIPTION_PROXY_API_KEY`
 - `ELEVENLABS_MODEL_ID` (`scribe_v1` or `scribe_v2`)
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
-- `TRANSCRIPTION_PROXY_URL` + `TRANSCRIPTION_PROXY_API_KEY` (for proxy mode)
 
 ## Proxy API Contract (MVP)
 
-When `API Mode` is set to `Use Proxy API`, the app sends a `multipart/form-data` request to `TRANSCRIPTION_PROXY_URL` (for example `http://127.0.0.1:8787/v1/voice-to-text`) with:
+The app sends a `multipart/form-data` request to `TRANSCRIPTION_PROXY_URL` (for example `http://127.0.0.1:8787/v1/voice-to-text`) with:
 
 - `file` (recorded audio file)
 - `model_id`
@@ -56,6 +58,17 @@ When `API Mode` is set to `Use Proxy API`, the app sends a `multipart/form-data`
 - `user_context`
 - `locale` (optional)
 - repeated `vocabulary_hints` fields
+
+Headers by mode:
+
+`PressToSpeak Account` mode:
+- `Authorization: Bearer <supabase-access-token>`
+- optional `x-api-key: <TRANSCRIPTION_PROXY_API_KEY>`
+
+`Bring Your Own Keys` mode:
+- `x-openai-api-key: <OPENAI_API_KEY>`
+- `x-elevenlabs-api-key: <ELEVENLABS_API_KEY>`
+- optional `x-api-key: <TRANSCRIPTION_PROXY_API_KEY>`
 
 Preferred response JSON shape:
 
@@ -93,7 +106,7 @@ Usage:
 4. Hold shortcut to record, release to transcribe and paste.
 5. Use `Latest transcription`, `View Previous`, and copy buttons to reuse earlier text.
 
-Note: ElevenLabs STT does not currently accept a free-form system prompt field. In direct ElevenLabs mode, `Locale` and `Vocabulary Hints` are applied. `Default System Prompt` and `User Context` are sent in proxy mode and are kept in the architecture for future local/post-processing support.
+`Default System Prompt`, `User Context`, `Locale`, and `Vocabulary Hints` are sent to the API for provider orchestration and cleanup.
 
 ## Build Release Binary
 

@@ -54,11 +54,14 @@ Primary flow:
   - `Sources/PressToSpeakInfra/ClipboardPaster.swift`
 
 ### Transcription providers
-- ElevenLabs direct provider uses `/v1/speech-to-text` multipart form.
-- Proxy mode sends multipart form with context fields and expects text-like key in JSON.
+- Primary flow routes transcription through proxy API.
+- `PressToSpeak Account` mode sends Supabase Bearer token.
+- `Bring Your Own Keys` mode sends `x-openai-api-key` + `x-elevenlabs-api-key`.
 - Files:
   - `Sources/PressToSpeakInfra/ElevenLabsTranscriptionProvider.swift`
   - `Sources/PressToSpeakInfra/ProxyTranscriptionProvider.swift`
+  - `Sources/PressToSpeakInfra/SupabaseAuthService.swift`
+  - `Sources/PressToSpeakInfra/CredentialVault.swift`
 
 ### History
 - Persisted transcription history in `UserDefaults` (`pressToSpeak.transcriptionHistory`).
@@ -122,11 +125,11 @@ Project env file:
 - `apps/mac/.env` (or `.env` when your shell cwd is `apps/mac`)
 
 Important keys:
-- `ELEVENLABS_API_KEY`
-- `ELEVENLABS_API_BASE_URL`
-- `ELEVENLABS_MODEL_ID`
 - `TRANSCRIPTION_PROXY_URL`
 - `TRANSCRIPTION_PROXY_API_KEY`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY` (preferred) or `SUPABASE_ANON_KEY` (compatibility)
+- `ELEVENLABS_MODEL_ID`
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
 
 Packaging behavior:
@@ -178,6 +181,9 @@ When changing this project:
 4. Validate with `swift build` before handing off.
 5. Reinstall with `make install-local` after UI/behavior changes.
 6. Update `README.md` and this file when workflows/assumptions change.
+7. Treat this app as production software: prefer secure-by-default implementations and least-privilege design.
+8. For auth/secrets/network boundaries, apply defense-in-depth and avoid exposing sensitive data in logs.
+9. After large features, perform a self security review and fix high/medium risk issues before handoff.
 
 ## Fast Smoke Test Checklist
 

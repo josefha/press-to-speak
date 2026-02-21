@@ -7,8 +7,65 @@ struct SettingsView: View {
     var body: some View {
         Form {
             Picker("API Mode", selection: $viewModel.settingsStore.settings.apiMode) {
-                ForEach(APIMode.allCases) { mode in
+                ForEach(viewModel.availableAPIModes) { mode in
                     Text(mode.label).tag(mode)
+                }
+            }
+
+            if !viewModel.showAdvancedModeOptions {
+                Button("Show Advanced Mode (Bring Your Own Keys)") {
+                    viewModel.showAdvancedModeOptions = true
+                }
+            }
+
+            if viewModel.settingsStore.settings.apiMode == .pressToSpeakAccount {
+                Section("PressToSpeak Account") {
+                    Text(viewModel.signedInAccountLabel)
+                        .foregroundStyle(.secondary)
+
+                    if !viewModel.isSupabaseConfigured {
+                        Text("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY) in app environment.")
+                            .foregroundStyle(.red)
+                    }
+
+                    if viewModel.isAccountAuthenticated {
+                        Button("Sign Out") {
+                            viewModel.signOutFromPressToSpeakAccount()
+                        }
+                    } else {
+                        TextField("Email", text: $viewModel.accountEmailInput)
+                        SecureField("Password", text: $viewModel.accountPasswordInput)
+
+                        HStack {
+                            Button("Sign In") {
+                                viewModel.signInWithPressToSpeakAccount()
+                            }
+                            .disabled(viewModel.isAuthInProgress)
+
+                            Button("Sign Up") {
+                                viewModel.signUpWithPressToSpeakAccount()
+                            }
+                            .disabled(viewModel.isAuthInProgress)
+                        }
+                    }
+                }
+            } else {
+                Section("Bring Your Own Keys") {
+                    Text("Advanced mode. Keys are stored in macOS Keychain.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+
+                    SecureField("OpenAI API Key", text: $viewModel.bringYourOwnOpenAIKeyInput)
+                    SecureField("ElevenLabs API Key", text: $viewModel.bringYourOwnElevenLabsKeyInput)
+
+                    HStack {
+                        Button("Save Keys") {
+                            viewModel.saveBringYourOwnProviderKeys()
+                        }
+                        Button("Clear Keys") {
+                            viewModel.clearBringYourOwnProviderKeys()
+                        }
+                    }
                 }
             }
 
