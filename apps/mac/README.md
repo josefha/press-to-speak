@@ -67,6 +67,14 @@ Expected response JSON should include one of these string keys:
 
 ## Run (No Xcode)
 
+From monorepo root:
+
+```bash
+make run
+```
+
+Or from this directory (`apps/mac`):
+
 ```bash
 make run
 ```
@@ -76,7 +84,7 @@ This launches the menu bar app directly from SwiftPM.
 Usage:
 
 1. Open menu bar icon and grant Accessibility permission.
-2. Click `Open App` to open the dashboard window.
+2. Click `Open PressToSpeak` to open the dashboard window.
 3. Pick your activation shortcut at the top.
 4. Hold shortcut to record, release to transcribe and paste.
 5. Use `Latest transcription`, `View Previous`, and copy buttons to reuse earlier text.
@@ -102,6 +110,10 @@ make package-app
 Output app bundle:
 
 - `dist/PressToSpeak.app`
+
+When run from monorepo root with `make package-app`, output is at:
+
+- `apps/mac/dist/PressToSpeak.app`
 
 ## Website Distribution (Outside App Store)
 

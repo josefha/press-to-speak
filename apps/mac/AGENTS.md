@@ -70,10 +70,16 @@ Primary flow:
 
 ## Build / Run / Reinstall (No Xcode UI)
 
-From repo root:
+Monorepo root:
 
 ```bash
 cd /Users/josef/Desktop/projects/private-projects/press-to-speak-mono/press-to-speak
+```
+
+App package root:
+
+```bash
+cd /Users/josef/Desktop/projects/private-projects/press-to-speak-mono/press-to-speak/apps/mac
 ```
 
 1. Run from source:
@@ -108,12 +114,12 @@ NOTARY_PROFILE=\"press-to-speak-notary\" make notarized-release
 
 App target:
 - `/Applications/PressToSpeak.app`
-- Website artifacts: `dist/release/*.dmg`, `dist/release/*.zip`
+- Website artifacts: `apps/mac/dist/release/*.dmg`, `apps/mac/dist/release/*.zip` (when run from monorepo root)
 
 ## Env Configuration
 
 Project env file:
-- `.env`
+- `apps/mac/.env` (or `.env` when your shell cwd is `apps/mac`)
 
 Important keys:
 - `ELEVENLABS_API_KEY`
