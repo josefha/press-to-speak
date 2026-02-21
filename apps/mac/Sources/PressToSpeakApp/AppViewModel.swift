@@ -38,6 +38,7 @@ final class AppViewModel: ObservableObject {
     private let hotkeyMonitor: GlobalHotkeyMonitor
     private let hotkeyCaptureService: HotkeyCaptureService
     private var accountSession: PressToSpeakAccountSession?
+    private var accountStateRefreshTask: Task<Void, Never>?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -193,8 +194,9 @@ final class AppViewModel: ObservableObject {
         }
 
         if !canTranscribe {
-            status = .error
-            lastError = "Sign in with a free PressToSpeak account to transcribe."
+            status = .idle
+            lastError = ""
+            accountAuthError = "Sign in with a free PressToSpeak account to transcribe."
             if accountAuthFlow == .none {
                 accountAuthFlow = .signIn
             }
@@ -296,6 +298,19 @@ final class AppViewModel: ObservableObject {
 
     func refreshAccessibilityPermission() {
         hasAccessibilityPermission = AccessibilityPermissionService.isTrusted()
+    }
+
+    func refreshUIStateOnOpen() {
+        refreshAccessibilityPermission()
+
+        accountStateRefreshTask?.cancel()
+        accountStateRefreshTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            await self.refreshAccountStateOnOpen()
+        }
     }
 
     func resetError() {
@@ -424,6 +439,7 @@ final class AppViewModel: ObservableObject {
     func signOutFromPressToSpeakAccount() {
         let accessToken = accountSession?.accessToken
         resetSignedInAccountState()
+        resetError()
         accountAuthError = ""
         accountAuthFlow = .none
 
@@ -538,6 +554,24 @@ final class AppViewModel: ObservableObject {
             signedInAccountLabel = "Session expired. Sign in again."
             try? credentialVault.clearAccountSession()
             throw error
+        }
+    }
+
+    private func refreshAccountStateOnOpen() async {
+        do {
+            guard let storedSession = try credentialVault.loadAccountSession() else {
+                if isAccountAuthenticated {
+                    resetSignedInAccountState()
+                }
+                return
+            }
+
+            applySignedInSession(storedSession)
+            _ = try await resolveActiveAccountSession()
+        } catch AppConfigurationError.accountSignInRequired {
+            resetSignedInAccountState()
+        } catch {
+            AppLogger.log("Account: refresh on open failed: \(error.localizedDescription)")
         }
     }
 

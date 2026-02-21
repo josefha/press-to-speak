@@ -5,8 +5,17 @@ struct PressToSpeakMenuBarApp: App {
     @StateObject private var viewModel = AppViewModel()
 
     var body: some Scene {
-        MenuBarExtra("PressToSpeak", systemImage: viewModel.statusSymbol) {
+        MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)
+        } label: {
+            if let logo = BrandingAssets.menuBarLogo() {
+                logo
+                    .renderingMode(.template)
+                    .accessibilityLabel(Text("PressToSpeak"))
+            } else {
+                Image(systemName: viewModel.statusSymbol)
+                    .accessibilityLabel(Text("PressToSpeak"))
+            }
         }
 
         Window("PressToSpeak", id: "main-dashboard") {

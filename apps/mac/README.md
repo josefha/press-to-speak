@@ -137,6 +137,11 @@ When run from monorepo root with `make package-app`, output is at:
 
 - `apps/mac/dist/PressToSpeak.app`
 
+Branding notes:
+- Menu bar/header logos are loaded from `Sources/PressToSpeakApp/Resources/Branding/`.
+- Packaging generates `Contents/Resources/AppIcon.icns` from `logo-dark.svg` (fallback `logo-dark.png`) and sets `CFBundleIconFile`.
+- SwiftPM resource bundles are copied into `Contents/Resources/` during packaging.
+
 ## Website Distribution (Outside App Store)
 
 Yes, you can distribute this app from your website without the Mac App Store.
@@ -227,6 +232,7 @@ The app requires:
 ## Project Structure
 
 - `Sources/PressToSpeakApp`: SwiftUI menu bar shell + app state.
+- `Sources/PressToSpeakApp/Resources/Branding`: app logo assets for UI and icon generation.
 - `Sources/PressToSpeakCore`: Domain protocols/models/orchestration.
 - `Sources/PressToSpeakInfra`: Environment loading, settings persistence, provider/paster implementations.
 - `scripts/package_app.sh`: `.app` bundle packaging script.

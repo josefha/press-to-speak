@@ -141,6 +141,8 @@ Supabase auth mode note:
 
 Packaging behavior:
 - `.env` is copied into app bundle as `Contents/Resources/app.env`.
+- SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
+- App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg` (fallback `logo-dark.png`).
 - `AppConfiguration` loads bundled env + working directory env + process env.
 
 ## Permission / TCC Notes

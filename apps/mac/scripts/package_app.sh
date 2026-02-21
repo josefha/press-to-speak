@@ -9,7 +9,60 @@ APP_DIR="dist/${APP_NAME}.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
+ICON_NAME="AppIcon"
+ICON_FILE="${RESOURCES_DIR}/${ICON_NAME}.icns"
+ICON_SVG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg"
+ICON_PNG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.png"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
+
+generate_app_icon() {
+  local iconset_dir
+  local working_dir
+  local source_png
+  local source_filename
+
+  working_dir="$(mktemp -d)"
+  iconset_dir="${working_dir}/${ICON_NAME}.iconset"
+  mkdir -p "${iconset_dir}"
+
+  if [[ -f "${ICON_SVG_SOURCE}" ]] && command -v qlmanage >/dev/null 2>&1; then
+    qlmanage -t -s 1024 -o "${working_dir}" "${ICON_SVG_SOURCE}" >/dev/null 2>&1 || true
+    source_filename="$(basename "${ICON_SVG_SOURCE}").png"
+    if [[ -f "${working_dir}/${source_filename}" ]]; then
+      source_png="${working_dir}/${source_filename}"
+    fi
+  fi
+
+  if [[ -z "${source_png:-}" && -f "${ICON_PNG_SOURCE}" ]]; then
+    source_png="${ICON_PNG_SOURCE}"
+  fi
+
+  if [[ -z "${source_png:-}" ]]; then
+    echo "Warning: no branding icon source found at ${ICON_SVG_SOURCE} or ${ICON_PNG_SOURCE}; skipping app icon generation."
+    rm -rf "${working_dir}"
+    return
+  fi
+
+  if ! command -v sips >/dev/null 2>&1 || ! command -v iconutil >/dev/null 2>&1; then
+    echo "Warning: sips or iconutil not available; skipping app icon generation."
+    rm -rf "${working_dir}"
+    return
+  fi
+
+  sips -z 16 16 "${source_png}" --out "${iconset_dir}/icon_16x16.png" >/dev/null
+  sips -z 32 32 "${source_png}" --out "${iconset_dir}/icon_16x16@2x.png" >/dev/null
+  sips -z 32 32 "${source_png}" --out "${iconset_dir}/icon_32x32.png" >/dev/null
+  sips -z 64 64 "${source_png}" --out "${iconset_dir}/icon_32x32@2x.png" >/dev/null
+  sips -z 128 128 "${source_png}" --out "${iconset_dir}/icon_128x128.png" >/dev/null
+  sips -z 256 256 "${source_png}" --out "${iconset_dir}/icon_128x128@2x.png" >/dev/null
+  sips -z 256 256 "${source_png}" --out "${iconset_dir}/icon_256x256.png" >/dev/null
+  sips -z 512 512 "${source_png}" --out "${iconset_dir}/icon_256x256@2x.png" >/dev/null
+  sips -z 512 512 "${source_png}" --out "${iconset_dir}/icon_512x512.png" >/dev/null
+  sips -z 1024 1024 "${source_png}" --out "${iconset_dir}/icon_512x512@2x.png" >/dev/null
+
+  iconutil -c icns "${iconset_dir}" -o "${ICON_FILE}"
+  rm -rf "${working_dir}"
+}
 
 swift build -c release --product "${PRODUCT}"
 
@@ -23,6 +76,15 @@ mkdir -p "${MACOS_DIR}" "${RESOURCES_DIR}"
 
 cp "${BUILD_BINARY}" "${MACOS_DIR}/${APP_NAME}"
 chmod +x "${MACOS_DIR}/${APP_NAME}"
+
+# Copy SwiftPM resource bundles for runtime asset loading.
+for resource_bundle in .build/release/*.bundle; do
+  if [[ -d "${resource_bundle}" ]]; then
+    cp -R "${resource_bundle}" "${RESOURCES_DIR}/"
+  fi
+done
+
+generate_app_icon
 
 # Package local env for installed app use (optional).
 if [[ -f ".env" ]]; then
@@ -42,6 +104,8 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
   <string>${BUNDLE_ID}</string>
   <key>CFBundleInfoDictionaryVersion</key>
   <string>6.0</string>
+  <key>CFBundleIconFile</key>
+  <string>${ICON_NAME}</string>
   <key>CFBundleName</key>
   <string>${APP_NAME}</string>
   <key>CFBundlePackageType</key>

@@ -32,36 +32,46 @@ struct MenuBarContentView: View {
                 }
             }
 
-            Button("Start Capture") {
-                viewModel.startCapture()
-            }
-
-            Button("Stop + Transcribe") {
-                viewModel.finishCapture()
-            }
-
-            if !viewModel.lastError.isEmpty {
-                Text(viewModel.lastError)
-                    .foregroundStyle(.red)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Button("Clear Error") {
-                    viewModel.resetError()
+            if viewModel.isAccountAuthenticated {
+                Button("Start Capture") {
+                    viewModel.startCapture()
                 }
-            }
 
-            Button {
-                viewModel.copyLatestToClipboard()
-            } label: {
-                Label("Copy Last Entry to Clipboard", systemImage: "doc.on.doc")
+                Button("Stop + Transcribe") {
+                    viewModel.finishCapture()
+                }
+
+                if !viewModel.lastError.isEmpty {
+                    Text(viewModel.lastError)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    Button("Clear Error") {
+                        viewModel.resetError()
+                    }
+                }
+
+                Button {
+                    viewModel.copyLatestToClipboard()
+                } label: {
+                    Label("Copy Last Entry to Clipboard", systemImage: "doc.on.doc")
+                }
+                .disabled(!viewModel.hasLatestTranscription)
+            } else {
+                Button {
+                    openDashboard()
+                } label: {
+                    Text("Login to start using")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.green)
+                }
+                .buttonStyle(.plain)
             }
-            .disabled(!viewModel.hasLatestTranscription)
 
             Divider()
 
             Button("Open PressToSpeak") {
-                openWindow(id: "main-dashboard")
-                NSApp.activate(ignoringOtherApps: true)
+                openDashboard()
             }
 
             Button("Quit") {
@@ -71,7 +81,13 @@ struct MenuBarContentView: View {
         .padding(14)
         .frame(width: 320)
         .onAppear {
-            viewModel.refreshAccessibilityPermission()
+            viewModel.refreshUIStateOnOpen()
         }
+    }
+
+    private func openDashboard() {
+        viewModel.refreshUIStateOnOpen()
+        openWindow(id: "main-dashboard")
+        NSApp.activate(ignoringOtherApps: true)
     }
 }

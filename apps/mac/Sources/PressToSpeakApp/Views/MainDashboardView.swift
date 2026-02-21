@@ -5,6 +5,7 @@ import SwiftUI
 struct MainDashboardView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var showPrevious = false
+    @Environment(\.colorScheme) private var colorScheme
 
     private let websiteURL = URL(string: "https://press-to-speak-jes3r9liz-josef-karakocas-projects.vercel.app")!
 
@@ -28,25 +29,34 @@ struct MainDashboardView: View {
         }
         .frame(minWidth: 820, minHeight: 700)
         .onAppear {
-            viewModel.refreshAccessibilityPermission()
+            viewModel.refreshUIStateOnOpen()
         }
     }
 
     private var heroSection: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 14) {
-                ZStack {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppPalette.brandTop, AppPalette.brandBottom],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                    Image(systemName: "waveform.and.mic")
-                        .font(.title2.weight(.semibold))
-                        .foregroundStyle(.white)
+                Group {
+                    if let logo = BrandingAssets.dashboardLogo(for: colorScheme) {
+                        logo
+                            .resizable()
+                            .interpolation(.high)
+                            .scaledToFit()
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppPalette.brandTop, AppPalette.brandBottom],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                            Image(systemName: "waveform.and.mic")
+                                .font(.title2.weight(.semibold))
+                                .foregroundStyle(.white)
+                        }
+                    }
                 }
                 .frame(width: 50, height: 50)
 

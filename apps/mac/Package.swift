@@ -14,7 +14,10 @@ let package = Package(
         .target(name: "PressToSpeakInfra", dependencies: ["PressToSpeakCore"]),
         .executableTarget(
             name: "PressToSpeakApp",
-            dependencies: ["PressToSpeakCore", "PressToSpeakInfra"]
+            dependencies: ["PressToSpeakCore", "PressToSpeakInfra"],
+            resources: [
+                .process("Resources")
+            ]
         )
     ]
 )
