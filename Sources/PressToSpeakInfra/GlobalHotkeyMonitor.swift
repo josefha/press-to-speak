@@ -1,10 +1,9 @@
 import AppKit
-import Carbon
 import Foundation
 import PressToSpeakCore
 
 public final class GlobalHotkeyMonitor {
-    private var shortcut: ActivationShortcut
+    private var shortcut: KeyboardShortcut
     private var onPress: @MainActor () -> Void
     private var onRelease: @MainActor () -> Void
 
@@ -18,7 +17,7 @@ public final class GlobalHotkeyMonitor {
     private var localFlagsChangedMonitor: Any?
 
     public init(
-        shortcut: ActivationShortcut,
+        shortcut: KeyboardShortcut,
         onPress: @escaping @MainActor () -> Void,
         onRelease: @escaping @MainActor () -> Void
     ) {
@@ -41,6 +40,7 @@ public final class GlobalHotkeyMonitor {
         globalKeyUpMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.keyUp]) { [weak self] event in
             self?.handle(event: event, isKeyDown: false)
         }
+
         globalFlagsChangedMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
             self?.handleFlagsChanged(event: event)
         }
@@ -54,6 +54,7 @@ public final class GlobalHotkeyMonitor {
             self?.handle(event: event, isKeyDown: false)
             return event
         }
+
         localFlagsChangedMonitor = NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { [weak self] event in
             self?.handleFlagsChanged(event: event)
             return event
@@ -67,13 +68,13 @@ public final class GlobalHotkeyMonitor {
         if let monitor = globalKeyUpMonitor {
             NSEvent.removeMonitor(monitor)
         }
+        if let monitor = globalFlagsChangedMonitor {
+            NSEvent.removeMonitor(monitor)
+        }
         if let monitor = localKeyDownMonitor {
             NSEvent.removeMonitor(monitor)
         }
         if let monitor = localKeyUpMonitor {
-            NSEvent.removeMonitor(monitor)
-        }
-        if let monitor = globalFlagsChangedMonitor {
             NSEvent.removeMonitor(monitor)
         }
         if let monitor = localFlagsChangedMonitor {
@@ -89,7 +90,7 @@ public final class GlobalHotkeyMonitor {
         isPressed = false
     }
 
-    public func updateShortcut(_ shortcut: ActivationShortcut) {
+    public func updateShortcut(_ shortcut: KeyboardShortcut) {
         self.shortcut = shortcut
         self.isPressed = false
     }
@@ -103,7 +104,19 @@ public final class GlobalHotkeyMonitor {
     }
 
     private func handle(event: NSEvent, isKeyDown: Bool) {
-        if shortcut.isModifierShortcut {
+        if shortcut.isModifierOnly {
+            return
+        }
+
+        if isKeyDown {
+            guard !event.isARepeat else {
+                return
+            }
+            guard matchesKeyDown(event: event, shortcut: shortcut) else {
+                return
+            }
+
+            transition(isPressed: true)
             return
         }
 
@@ -111,11 +124,11 @@ public final class GlobalHotkeyMonitor {
             return
         }
 
-        transition(isPressed: isKeyDown, ignoreRepeats: event.isARepeat)
+        transition(isPressed: false)
     }
 
     private func handleFlagsChanged(event: NSEvent) {
-        guard shortcut.isModifierShortcut else {
+        guard shortcut.isModifierOnly else {
             return
         }
 
@@ -123,14 +136,46 @@ public final class GlobalHotkeyMonitor {
             return
         }
 
-        transition(isPressed: shortcut.isPressed(in: event.modifierFlags), ignoreRepeats: false)
+        guard let requiredModifier = shortcut.modifiers.first else {
+            return
+        }
+
+        let activeModifiers = normalizedModifiers(from: event.modifierFlags)
+        let shouldBePressed = activeModifiers.contains(requiredModifier)
+        transition(isPressed: shouldBePressed)
     }
 
-    private func transition(isPressed shouldBePressed: Bool, ignoreRepeats: Bool) {
+    private func matchesKeyDown(event: NSEvent, shortcut: KeyboardShortcut) -> Bool {
+        guard event.keyCode == shortcut.keyCode else {
+            return false
+        }
+
+        let active = normalizedModifiers(from: event.modifierFlags)
+        let expected = Set(shortcut.modifiers)
+        return active == expected
+    }
+
+    private func normalizedModifiers(from flags: NSEvent.ModifierFlags) -> Set<ShortcutModifier> {
+        var result = Set<ShortcutModifier>()
+
+        if flags.contains(.command) {
+            result.insert(.command)
+        }
+        if flags.contains(.option) {
+            result.insert(.option)
+        }
+        if flags.contains(.shift) {
+            result.insert(.shift)
+        }
+        if flags.contains(.control) {
+            result.insert(.control)
+        }
+
+        return result
+    }
+
+    private func transition(isPressed shouldBePressed: Bool) {
         if shouldBePressed {
-            guard !ignoreRepeats else {
-                return
-            }
             guard !isPressed else {
                 return
             }
@@ -138,54 +183,16 @@ public final class GlobalHotkeyMonitor {
             Task { @MainActor in
                 onPress()
             }
-        } else {
-            guard isPressed else {
-                return
-            }
-
-            isPressed = false
-            Task { @MainActor in
-                onRelease()
-            }
+            return
         }
-    }
-}
 
-private extension ActivationShortcut {
-    var isModifierShortcut: Bool {
-        switch self {
-        case .rightOption, .rightCommand:
-            return true
-        case .f18, .f19, .f20, .graveAccent:
-            return false
+        guard isPressed else {
+            return
         }
-    }
 
-    var keyCode: UInt16 {
-        switch self {
-        case .rightOption:
-            return UInt16(kVK_RightOption)
-        case .rightCommand:
-            return UInt16(kVK_RightCommand)
-        case .f18:
-            return UInt16(kVK_F18)
-        case .f19:
-            return UInt16(kVK_F19)
-        case .f20:
-            return UInt16(kVK_F20)
-        case .graveAccent:
-            return UInt16(kVK_ANSI_Grave)
-        }
-    }
-
-    func isPressed(in flags: NSEvent.ModifierFlags) -> Bool {
-        switch self {
-        case .rightOption:
-            return flags.contains(.option)
-        case .rightCommand:
-            return flags.contains(.command)
-        case .f18, .f19, .f20, .graveAccent:
-            return false
+        isPressed = false
+        Task { @MainActor in
+            onRelease()
         }
     }
 }

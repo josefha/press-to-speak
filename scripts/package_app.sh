@@ -9,6 +9,7 @@ APP_DIR="dist/${APP_NAME}.app"
 CONTENTS_DIR="${APP_DIR}/Contents"
 MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
+CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
 
 swift build -c release --product "${PRODUCT}"
 
@@ -59,8 +60,20 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
 </plist>
 PLIST
 
-if command -v codesign >/dev/null 2>&1; then
-  codesign --force --deep --sign - "${APP_DIR}" >/dev/null 2>&1 || true
+if [[ -n "${CODESIGN_IDENTITY}" ]] && command -v codesign >/dev/null 2>&1; then
+  if security find-identity -v -p codesigning 2>/dev/null | grep -Fq "\"${CODESIGN_IDENTITY}\""; then
+    CODESIGN_ARGS=(--force --deep --sign "${CODESIGN_IDENTITY}")
+    if [[ "${CODESIGN_IDENTITY}" == Developer\ ID\ Application:* ]]; then
+      CODESIGN_ARGS+=(--options runtime --timestamp)
+    fi
+
+    codesign "${CODESIGN_ARGS[@]}" "${APP_DIR}"
+    echo "Signed ${APP_DIR} with identity: ${CODESIGN_IDENTITY}"
+  else
+    echo "Requested CODESIGN_IDENTITY was not found in keychain, skipping codesign: ${CODESIGN_IDENTITY}"
+  fi
+else
+  echo "Skipping codesign. Set CODESIGN_IDENTITY to sign with a stable identity."
 fi
 
 echo "Packaged ${APP_DIR}"

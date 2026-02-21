@@ -103,6 +103,53 @@ Output app bundle:
 
 - `dist/PressToSpeak.app`
 
+## Website Distribution (Outside App Store)
+
+Yes, you can distribute this app from your website without the Mac App Store.
+
+### Do you need an Apple Developer license?
+
+- For the best user experience (`double-click install` with minimal warnings): **Yes**, you need a paid Apple Developer Program account to use:
+1. Developer ID Application signing
+2. Apple notarization
+
+- Without paid Apple Developer signing/notarization: you can still distribute, but users may see stronger Gatekeeper warnings and need manual override steps.
+
+### Build downloadable artifacts (`.zip` + `.dmg`)
+
+```bash
+make release-artifacts
+```
+
+Outputs:
+- `dist/release/PressToSpeak-<version>-macOS.zip`
+- `dist/release/PressToSpeak-<version>-macOS.dmg`
+
+### Recommended production release flow (signed + notarized)
+
+1. Use a Developer ID identity:
+```bash
+CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make release-artifacts
+```
+
+2. Notarize and staple:
+```bash
+NOTARY_PROFILE="press-to-speak-notary" make notarized-release
+```
+
+3. Upload the notarized `.dmg` (and optional `.zip`) from `dist/release/` to your website download button.
+
+### Notary profile setup (one-time)
+
+Store notary credentials in keychain:
+
+```bash
+xcrun notarytool store-credentials "press-to-speak-notary" \
+  --apple-id "<apple-id-email>" \
+  --team-id "<TEAMID>" \
+  --password "<app-specific-password>"
+```
+
 ## Install Locally
 
 ```bash
@@ -112,6 +159,29 @@ make install-local
 App install target:
 
 - `/Applications/PressToSpeak.app`
+
+### Permission Persistence During Testing
+
+macOS privacy permissions (Microphone/Accessibility) are tied to app identity. To reduce repeated permission prompts:
+
+1. Keep the same bundle id (`com.opensource.presstospeak`).
+2. Keep installing to the same path (`/Applications/PressToSpeak.app`).
+3. Avoid changing signing identity between builds.
+
+By default this project now skips ad-hoc signing in packaging to improve local testing stability.
+If you want explicit signing, use a stable identity every time:
+
+```bash
+CODESIGN_IDENTITY="Apple Development: Your Name (TEAMID)" make install-local
+```
+
+Current Makefile default:
+
+```bash
+CODESIGN_IDENTITY="Apple Development: Your Name Josef Karakoca"
+```
+
+If that identity is not present in Keychain, packaging will skip codesign and continue.
 
 ## Permissions
 

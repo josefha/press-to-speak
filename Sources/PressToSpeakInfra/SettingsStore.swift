@@ -12,7 +12,7 @@ public struct AppSettings: Codable {
 
     public init(
         apiMode: APIMode = .bringYourOwnElevenLabsKey,
-        activationShortcut: String = ActivationShortcut.rightOption.rawValue,
+        activationShortcut: String = KeyboardShortcut.defaultShortcut.storageValue,
         defaultSystemPrompt: String = "Transcribe accurately. Produce polished written language with correct punctuation and grammar.",
         userContext: String = "",
         vocabularyHintText: String = "",
@@ -26,12 +26,12 @@ public struct AppSettings: Codable {
         self.locale = locale
     }
 
-    public var activationShortcutValue: ActivationShortcut {
+    public var activationShortcutValue: KeyboardShortcut {
         get {
-            ActivationShortcut.fromStoredValue(activationShortcut)
+            KeyboardShortcut.fromStoredValue(activationShortcut)
         }
         set {
-            activationShortcut = newValue.rawValue
+            activationShortcut = newValue.storageValue
         }
     }
 

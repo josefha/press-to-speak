@@ -4,13 +4,6 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var viewModel: AppViewModel
 
-    private var shortcutBinding: Binding<ActivationShortcut> {
-        Binding(
-            get: { viewModel.settingsStore.settings.activationShortcutValue },
-            set: { viewModel.settingsStore.settings.activationShortcutValue = $0 }
-        )
-    }
-
     var body: some View {
         Form {
             Picker("API Mode", selection: $viewModel.settingsStore.settings.apiMode) {
@@ -19,10 +12,26 @@ struct SettingsView: View {
                 }
             }
 
-            Picker("Activation Shortcut", selection: shortcutBinding) {
-                ForEach(ActivationShortcut.allCases) { shortcut in
-                    Text(shortcut.label).tag(shortcut)
+            HStack {
+                Text("Hotkey")
+                Spacer()
+                Text(viewModel.activeShortcutLabel)
+                    .foregroundStyle(.secondary)
+            }
+
+            HStack {
+                if viewModel.isCapturingHotkey {
+                    Button("Cancel Hotkey Update") {
+                        viewModel.cancelHotkeyUpdate()
+                    }
+                } else {
+                    Button("Update Hotkey") {
+                        viewModel.beginHotkeyUpdate()
+                    }
                 }
+                Text(viewModel.hotkeyCaptureHelpText)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             TextField("Locale (optional)", text: $viewModel.settingsStore.settings.locale)

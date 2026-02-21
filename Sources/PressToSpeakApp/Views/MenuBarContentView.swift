@@ -13,13 +13,6 @@ struct MenuBarContentView: View {
                 Text(viewModel.statusLabel)
             }
 
-            Button {
-                openWindow(id: "main-dashboard")
-                NSApp.activate(ignoringOtherApps: true)
-            } label: {
-                Label("Open App", systemImage: "rectangle.on.rectangle")
-            }
-
             Text("Hold \(viewModel.activeShortcutLabel) to speak in any app.")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
@@ -39,11 +32,11 @@ struct MenuBarContentView: View {
                 }
             }
 
-            Button("Start Capture (manual)") {
+            Button("Start Capture") {
                 viewModel.startCapture()
             }
 
-            Button("Stop + Transcribe (manual)") {
+            Button("Stop + Transcribe") {
                 viewModel.finishCapture()
             }
 
@@ -57,16 +50,16 @@ struct MenuBarContentView: View {
                 }
             }
 
-            if !viewModel.lastTranscription.isEmpty {
-                Text("Last transcription:")
-                    .font(.headline)
-                Text(viewModel.lastTranscription)
-                    .fixedSize(horizontal: false, vertical: true)
+            Button {
+                viewModel.copyLatestToClipboard()
+            } label: {
+                Label("Copy Last Entry to Clipboard", systemImage: "doc.on.doc")
             }
+            .disabled(!viewModel.hasLatestTranscription)
 
             Divider()
 
-            Button("Open Settings…") {
+            Button("Open PressToSpeak") {
                 openWindow(id: "main-dashboard")
                 NSApp.activate(ignoringOtherApps: true)
             }

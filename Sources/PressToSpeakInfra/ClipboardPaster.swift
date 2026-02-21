@@ -1,3 +1,4 @@
+import ApplicationServices
 import AppKit
 import Carbon
 import Foundation
@@ -58,9 +59,15 @@ public final class ClipboardPaster: TextPaster {
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
 
+        guard AXIsProcessTrusted() else {
+            AppLogger.log("Paste: accessibility permission unavailable, copied text to clipboard as fallback")
+            return
+        }
+
         guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: true),
               let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: CGKeyCode(kVK_ANSI_V), keyDown: false) else {
-            throw ClipboardPasterError.failedToCreatePasteEvents
+            AppLogger.log("Paste: failed to synthesize Cmd+V events, copied text to clipboard as fallback")
+            return
         }
 
         keyDown.flags = .maskCommand

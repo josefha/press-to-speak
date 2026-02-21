@@ -8,13 +8,6 @@ struct MainDashboardView: View {
 
     private let websiteURL = URL(string: "https://press-to-speak-jes3r9liz-josef-karakocas-projects.vercel.app")!
 
-    private var shortcutBinding: Binding<ActivationShortcut> {
-        Binding(
-            get: { viewModel.selectedShortcut },
-            set: { viewModel.selectedShortcut = $0 }
-        )
-    }
-
     var body: some View {
         ZStack {
             AppPalette.canvas
@@ -24,9 +17,9 @@ struct MainDashboardView: View {
                 VStack(alignment: .leading, spacing: 18) {
                     heroSection
                     quickActionsSection
-                    settingsSection
                     latestTranscriptionSection
                     previousTranscriptionsSection
+                    settingsSection
                     permissionSection
                 }
                 .padding(22)
@@ -85,29 +78,35 @@ struct MainDashboardView: View {
                     .background(statusColor.opacity(0.14))
                     .foregroundStyle(statusColor)
                     .clipShape(Capsule())
-
-                Spacer()
-
-                Text("Active hotkey: \(viewModel.activeShortcutLabel)")
-                    .font(.subheadline.weight(.semibold))
             }
 
-            HStack(spacing: 10) {
-                Text("Hotkey")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .tracking(0.4)
+            VStack(alignment: .leading, spacing: 8) {
+                HStack(spacing: 10) {
+                    Text(viewModel.hotkeyCaptureHelpText)
+                        .font(.callout)
+                        .foregroundStyle(viewModel.isCapturingHotkey ? AppPalette.warning : .secondary)
 
-                Picker("Hotkey", selection: shortcutBinding) {
-                    ForEach(ActivationShortcut.allCases) { shortcut in
-                        Text(shortcut.label).tag(shortcut)
+                    Spacer()
+
+                    if viewModel.isCapturingHotkey {
+                        Button("Cancel") {
+                            viewModel.cancelHotkeyUpdate()
+                        }
+                        .buttonStyle(.bordered)
+                    } else {
+                        Button("Update Hotkey") {
+                            viewModel.beginHotkeyUpdate()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppPalette.brandBottom)
                     }
                 }
-                .labelsHidden()
-                .pickerStyle(.menu)
 
-                Spacer()
+                if viewModel.isCapturingHotkey {
+                    Text("Press one key or a key combo, for example ⌘ + ,")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
             }
         }
         .cardStyle()
@@ -123,18 +122,24 @@ struct MainDashboardView: View {
                     viewModel.startCapture()
                 } label: {
                     Label("Start Recording", systemImage: "mic.fill")
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 6)
+                        .frame(minHeight: 34)
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .tint(AppPalette.brandBottom)
 
                 Button {
                     viewModel.finishCapture()
                 } label: {
                     Label("Stop + Transcribe", systemImage: "waveform")
-                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, 6)
+                        .frame(minHeight: 34)
                 }
                 .buttonStyle(.bordered)
+                .controlSize(.large)
+
+                Spacer()
             }
 
             if !viewModel.lastError.isEmpty {

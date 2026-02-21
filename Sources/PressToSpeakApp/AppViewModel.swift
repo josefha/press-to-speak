@@ -1,5 +1,5 @@
-import Combine
 import AppKit
+import Combine
 import Foundation
 import PressToSpeakCore
 import PressToSpeakInfra
@@ -11,6 +11,7 @@ final class AppViewModel: ObservableObject {
     @Published var lastError: String = ""
     @Published private(set) var hasAccessibilityPermission = false
     @Published private(set) var historyItems: [TranscriptionHistoryItem] = []
+    @Published private(set) var isCapturingHotkey = false
 
     var settingsStore: SettingsStore
     var historyStore: TranscriptionHistoryStore
@@ -21,6 +22,7 @@ final class AppViewModel: ObservableObject {
     private let elevenLabsProvider: TranscriptionProvider
     private let proxyProvider: TranscriptionProvider
     private let hotkeyMonitor: GlobalHotkeyMonitor
+    private let hotkeyCaptureService: HotkeyCaptureService
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -37,6 +39,7 @@ final class AppViewModel: ObservableObject {
         self.promptBuilder = DefaultPromptBuilder()
         self.elevenLabsProvider = ElevenLabsTranscriptionProvider(configuration: configuration)
         self.proxyProvider = ProxyTranscriptionProvider(configuration: configuration)
+        self.hotkeyCaptureService = HotkeyCaptureService()
 
         self.hotkeyMonitor = GlobalHotkeyMonitor(
             shortcut: self.settingsStore.settings.activationShortcutValue,
@@ -91,16 +94,27 @@ final class AppViewModel: ObservableObject {
     }
 
     var activeShortcutLabel: String {
-        settingsStore.settings.activationShortcutValue.label
+        settingsStore.settings.activationShortcutValue.displayLabel
     }
 
-    var selectedShortcut: ActivationShortcut {
-        get { settingsStore.settings.activationShortcutValue }
-        set { settingsStore.settings.activationShortcutValue = newValue }
+    var selectedShortcut: KeyboardShortcut {
+        settingsStore.settings.activationShortcutValue
+    }
+
+    var hotkeyCaptureHelpText: String {
+        if isCapturingHotkey {
+            return "Press one key or a key combination now..."
+        }
+
+        return "Current hotkey: \(activeShortcutLabel)"
     }
 
     func startCapture() {
         guard status == .idle else {
+            return
+        }
+
+        guard !isCapturingHotkey else {
             return
         }
 
@@ -156,6 +170,39 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    func beginHotkeyUpdate() {
+        guard !isCapturingHotkey else {
+            return
+        }
+
+        isCapturingHotkey = true
+        lastError = ""
+        AppLogger.log("Hotkey: capture mode started")
+
+        hotkeyMonitor.stop()
+        hotkeyCaptureService.beginCapture { [weak self] newShortcut in
+            guard let self else {
+                return
+            }
+
+            self.settingsStore.settings.activationShortcutValue = newShortcut
+            self.isCapturingHotkey = false
+            self.hotkeyMonitor.start()
+            AppLogger.log("Hotkey: updated to \(newShortcut.displayLabel)")
+        }
+    }
+
+    func cancelHotkeyUpdate() {
+        guard isCapturingHotkey else {
+            return
+        }
+
+        hotkeyCaptureService.stopCapture()
+        isCapturingHotkey = false
+        hotkeyMonitor.start()
+        AppLogger.log("Hotkey: capture mode canceled")
+    }
+
     func requestAccessibilityPermissionPrompt() {
         AccessibilityPermissionService.promptIfNeeded()
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -178,6 +225,17 @@ final class AppViewModel: ObservableObject {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
         pasteboard.setString(text, forType: .string)
+    }
+
+    func copyLatestToClipboard() {
+        guard let latest = historyItems.first else {
+            return
+        }
+        copyToClipboard(latest.text)
+    }
+
+    var hasLatestTranscription: Bool {
+        !historyItems.isEmpty
     }
 
     func clearHistory() {
