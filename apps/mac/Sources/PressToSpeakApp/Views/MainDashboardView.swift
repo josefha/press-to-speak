@@ -5,6 +5,7 @@ import SwiftUI
 struct MainDashboardView: View {
     @ObservedObject var viewModel: AppViewModel
     @State private var showPrevious = false
+    @State private var currentPage: DashboardPage = .home
     @Environment(\.colorScheme) private var colorScheme
 
     private let websiteURL = URL(string: "https://www.presstospeak.com/")!
@@ -17,16 +18,11 @@ struct MainDashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     heroSection
-                    if !viewModel.hasAccessibilityPermission {
-                        permissionSection
-                    }
-                    accountAccessSection
-                    quickActionsSection
-                    latestTranscriptionSection
-                    previousTranscriptionsSection
-                    settingsSection
-                    if viewModel.hasAccessibilityPermission {
-                        permissionSection
+
+                    if currentPage == .home {
+                        homePageContent
+                    } else {
+                        settingsPageContent
                     }
                 }
                 .padding(22)
@@ -37,6 +33,29 @@ struct MainDashboardView: View {
         .frame(minWidth: 820, minHeight: 700)
         .onAppear {
             viewModel.refreshUIStateOnOpen()
+        }
+    }
+
+    private enum DashboardPage: String, CaseIterable {
+        case home
+        case settings
+
+        var title: String {
+            switch self {
+            case .home:
+                return "Home"
+            case .settings:
+                return "Settings"
+            }
+        }
+
+        var systemImage: String {
+            switch self {
+            case .home:
+                return "house"
+            case .settings:
+                return "gearshape"
+            }
         }
     }
 
@@ -78,15 +97,21 @@ struct MainDashboardView: View {
                 Spacer()
 
                 Link(destination: websiteURL) {
-                    Image(systemName: "globe")
-                        .font(.callout.weight(.medium))
-                        .padding(9)
+                    HStack(spacing: 6) {
+                        Image(systemName: "globe")
+                            .font(.callout.weight(.medium))
+                        Text("Website")
+                            .font(AppTypography.bodySemibold(size: 13))
+                    }
+                        .padding(.horizontal, 12)
+                        .frame(minHeight: 36)
                         .foregroundStyle(AppPalette.ink)
                         .background(AppPalette.softBlue)
                         .overlay(
-                            Circle().stroke(AppPalette.border, lineWidth: 1)
+                            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                .stroke(AppPalette.border, lineWidth: 1)
                         )
-                        .clipShape(Circle())
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
                 .buttonStyle(.plain)
                 .help("Open website")
@@ -100,34 +125,39 @@ struct MainDashboardView: View {
                     .background(statusBackgroundColor)
                     .foregroundStyle(statusColor)
                     .clipShape(Capsule())
+
+                Text("Hotkey: \(viewModel.activeShortcutLabel)")
+                    .font(AppTypography.bodyMedium(size: 13))
+                    .padding(.vertical, 6)
+                    .padding(.horizontal, 10)
+                    .background(AppPalette.softGray)
+                    .foregroundStyle(AppPalette.ink)
+                    .clipShape(Capsule())
             }
 
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 10) {
-                    Text(viewModel.hotkeyCaptureHelpText)
-                        .font(AppTypography.body(size: 14))
-                        .foregroundStyle(viewModel.isCapturingHotkey ? AppPalette.warning : AppPalette.mutedText)
-
-                    Spacer()
-
-                    if viewModel.isCapturingHotkey {
-                        Button("Cancel") {
-                            viewModel.cancelHotkeyUpdate()
-                        }
-                        .buttonStyle(.brandSecondary)
-                    } else {
-                        Button("Update Hotkey") {
-                            viewModel.beginHotkeyUpdate()
-                        }
-                        .buttonStyle(.brandSecondary)
+            HStack(spacing: 10) {
+                ForEach(DashboardPage.allCases, id: \.self) { page in
+                    Button {
+                        currentPage = page
+                    } label: {
+                        Label(page.title, systemImage: page.systemImage)
+                            .font(AppTypography.bodySemibold(size: 13))
+                            .foregroundStyle(page == currentPage ? AppPalette.onInk.opacity(0.95) : AppPalette.mutedText)
+                            .padding(.horizontal, 12)
+                            .frame(minHeight: 36)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .fill(page == currentPage ? Color(red: 0.64, green: 0.63, blue: 0.61) : AppPalette.card)
+                            )
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(page == currentPage ? Color.clear : AppPalette.borderStrong, lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
                 }
 
-                if viewModel.isCapturingHotkey {
-                    Text("Press one key or a key combo, for example ⌘ + ,")
-                        .font(AppTypography.body(size: 12))
-                        .foregroundStyle(AppPalette.mutedText)
-                }
+                Spacer()
             }
         }
         .cardStyle()
@@ -179,12 +209,12 @@ struct MainDashboardView: View {
                     }
 
                     Spacer()
-                }
 
-                Button("Sign Out") {
-                    viewModel.signOutFromPressToSpeakAccount()
+                    Button("Sign Out") {
+                        viewModel.signOutFromPressToSpeakAccount()
+                    }
+                    .buttonStyle(.brandSecondary)
                 }
-                .buttonStyle(.brandSecondary)
             } else {
                 Text("A free PressToSpeak account is required to use transcription.")
                     .font(AppTypography.body(size: 14))
@@ -200,21 +230,15 @@ struct MainDashboardView: View {
 
                 if viewModel.shouldShowAccountAuthForm {
                     TextField("Email", text: $viewModel.accountEmailInput)
-                        .textFieldStyle(.roundedBorder)
+                        .dashboardTextInputStyle()
                     SecureField("Password", text: $viewModel.accountPasswordInput)
-                        .textFieldStyle(.roundedBorder)
+                        .dashboardTextInputStyle()
 
                     HStack(spacing: 10) {
-                        Button(viewModel.accountSubmitButtonTitle) {
+                        Button(viewModel.isCreateAccountFlow ? "Create Account" : "Log In") {
                             viewModel.submitCurrentAccountFlow()
                         }
                         .buttonStyle(.brandPrimary)
-                        .disabled(viewModel.isAuthInProgress)
-
-                        Button(viewModel.accountSwitchButtonTitle) {
-                            viewModel.switchAccountFlow()
-                        }
-                        .buttonStyle(.brandSecondary)
                         .disabled(viewModel.isAuthInProgress)
 
                         Button("Cancel") {
@@ -242,6 +266,60 @@ struct MainDashboardView: View {
                 }
             }
         }
+        .cardStyle()
+    }
+
+    @ViewBuilder
+    private var homePageContent: some View {
+        if !viewModel.hasAccessibilityPermission {
+            permissionSection
+        }
+        accountAccessSection
+        quickActionsSection
+        latestTranscriptionSection
+        previousTranscriptionsSection
+    }
+
+    private var settingsPageContent: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            hotkeySettingsSection
+            settingsSection
+            permissionSection
+        }
+    }
+
+    private var hotkeySettingsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Hotkey")
+                .font(AppTypography.brandHeading(size: 22))
+
+            HStack(spacing: 10) {
+                Text(viewModel.hotkeyCaptureHelpText)
+                    .font(AppTypography.body(size: 14))
+                    .foregroundStyle(viewModel.isCapturingHotkey ? AppPalette.warning : AppPalette.mutedText)
+
+                Spacer()
+
+                if viewModel.isCapturingHotkey {
+                    Button("Cancel") {
+                        viewModel.cancelHotkeyUpdate()
+                    }
+                    .buttonStyle(.brandSecondary)
+                } else {
+                    Button("Update Hotkey") {
+                        viewModel.beginHotkeyUpdate()
+                    }
+                    .buttonStyle(.brandSecondary)
+                }
+            }
+
+            if viewModel.isCapturingHotkey {
+                Text("Press one key or a key combo, for example ⌘ + ,")
+                    .font(AppTypography.body(size: 12))
+                    .foregroundStyle(AppPalette.mutedText)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
     }
 
@@ -289,24 +367,24 @@ struct MainDashboardView: View {
                 .font(AppTypography.brandHeading(size: 22))
 
             TextField("Locale (optional)", text: $viewModel.settingsStore.settings.locale)
-                .textFieldStyle(.roundedBorder)
+                .dashboardTextInputStyle()
 
             textArea(
                 title: "Default System Prompt",
                 text: $viewModel.settingsStore.settings.defaultSystemPrompt,
-                minHeight: 92
+                minHeight: 112
             )
 
             textArea(
                 title: "User Context",
                 text: $viewModel.settingsStore.settings.userContext,
-                minHeight: 92
+                minHeight: 112
             )
 
             textArea(
                 title: "Vocabulary Hints",
                 text: $viewModel.settingsStore.settings.vocabularyHintText,
-                minHeight: 80
+                minHeight: 100
             )
         }
         .cardStyle()
@@ -418,7 +496,7 @@ struct MainDashboardView: View {
                 Button("Grant Accessibility") {
                     viewModel.requestAccessibilityPermissionPrompt()
                 }
-                .buttonStyle(.brandSecondary)
+                .buttonStyle(.brandPrimary)
 
                 Button("Refresh") {
                     viewModel.refreshAccessibilityPermission()
@@ -436,12 +514,14 @@ struct MainDashboardView: View {
                 .font(AppTypography.bodyMedium(size: 13))
             TextEditor(text: text)
                 .font(AppTypography.body(size: 14))
+                .tint(AppPalette.ink)
+                .scrollContentBackground(.hidden)
                 .frame(minHeight: minHeight)
-                .padding(8)
-                .background(AppPalette.card)
+                .padding(10)
+                .background(AppPalette.softGray)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(AppPalette.border, lineWidth: 1)
+                        .stroke(AppPalette.borderStrong, lineWidth: 1)
                 )
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
@@ -502,5 +582,22 @@ struct MainDashboardView: View {
         case .error:
             return "xmark.circle.fill"
         }
+    }
+}
+
+private extension View {
+    func dashboardTextInputStyle() -> some View {
+        self
+            .textFieldStyle(.plain)
+            .tint(AppPalette.ink)
+            .font(AppTypography.body(size: 14))
+            .padding(.horizontal, 12)
+            .frame(minHeight: 42)
+            .background(AppPalette.softGray)
+            .overlay(
+                RoundedRectangle(cornerRadius: 9, style: .continuous)
+                    .stroke(AppPalette.borderStrong, lineWidth: 1)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
     }
 }
