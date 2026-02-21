@@ -48,7 +48,7 @@ Optional:
 
 ## Proxy API Contract (MVP)
 
-When `API Mode` is set to `Use Proxy API`, the app sends a `multipart/form-data` request to `TRANSCRIPTION_PROXY_URL` with:
+When `API Mode` is set to `Use Proxy API`, the app sends a `multipart/form-data` request to `TRANSCRIPTION_PROXY_URL` (for example `http://127.0.0.1:8787/v1/voice-to-text`) with:
 
 - `file` (recorded audio file)
 - `model_id`
@@ -57,7 +57,11 @@ When `API Mode` is set to `Use Proxy API`, the app sends a `multipart/form-data`
 - `locale` (optional)
 - repeated `vocabulary_hints` fields
 
-Expected response JSON should include one of these string keys:
+Preferred response JSON shape:
+
+- `transcript.clean_text` (or fallback to `transcript.raw_text`)
+
+Backward-compatible fallback keys still supported:
 
 - `text`
 - `transcript`

@@ -85,6 +85,13 @@ Required:
 - `ELEVENLABS_API_KEY`
 - `OPENAI_API_KEY`
 
+Logging controls:
+
+- `LOG_PRETTY` (`true` by default in development): human-readable logs in terminal.
+- `LOG_PIPELINE_TEXT` (`true` by default in development): logs raw transcript and cleaned transcript so you can compare LLM rewrite value.
+- `LOG_PROVIDER_PAYLOADS` (`true` by default in development): logs ElevenLabs/OpenAI payload previews for inspection.
+- `LOG_TEXT_MAX_CHARS` (default `1200`): max chars for transcript/payload previews before truncation.
+
 ## Architecture Docs
 
 - `docs/architecture.md`

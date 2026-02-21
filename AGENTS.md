@@ -19,15 +19,17 @@ This is a monorepo with two apps:
 From repo root:
 
 ```bash
-make run
-make build
-make package-app
-make install-local
+make mac-run              # run from SwiftPM (no install)
+make mac-build-binary     # build .build/release/PressToSpeakApp
+make mac-build-app        # package apps/mac/dist/PressToSpeak.app
+make mac-install-app      # install /Applications/PressToSpeak.app
+make mac-open-app         # open /Applications/PressToSpeak.app
+make mac-install-and-open # install, then open
 make api-dev
 make api-build
 ```
 
-These forward to `apps/mac`.
+Legacy aliases still work: `make run`, `make build`, `make package-app`, `make install-local`.
 
 ## Where to Change What
 

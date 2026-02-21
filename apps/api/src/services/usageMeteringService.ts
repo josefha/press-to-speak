@@ -1,6 +1,6 @@
-import pino from "pino";
+import { logger } from "../lib/logger";
 
-const logger = pino({ name: "usage-metering" });
+const usageLogger = logger.child({ component: "usage-metering" });
 
 export type UsageEvent = {
   requestId: string;
@@ -13,5 +13,5 @@ export type UsageEvent = {
 };
 
 export async function recordUsageEvent(event: UsageEvent): Promise<void> {
-  logger.info(event, "usage event captured (placeholder)");
+  usageLogger.info(event, "usage event captured (placeholder)");
 }

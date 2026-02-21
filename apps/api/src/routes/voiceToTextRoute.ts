@@ -25,12 +25,15 @@ voiceToTextRouter.post(
       }
 
       const userId = extractUserId(req.header("x-user-id"));
+      const requestId = String(res.locals.requestId ?? "unknown");
       const startedAt = Date.now();
 
       const voiceToTextResult = await processVoiceToText({
         fileBuffer: req.file.buffer,
         fileName: req.file.originalname || "audio.wav",
         mimeType: req.file.mimetype,
+        requestId,
+        userId,
         sttOptions: {
           modelId: stringOrUndefined(req.body.model_id),
           languageCode: stringOrUndefined(req.body.language_code),
@@ -44,7 +47,7 @@ voiceToTextRouter.post(
       const totalLatencyMs = Date.now() - startedAt;
 
       await recordUsageEvent({
-        requestId: res.locals.requestId,
+        requestId,
         userId,
         audioBytes: req.file.size,
         rawCharacters: voiceToTextResult.rawText.length,
@@ -54,7 +57,7 @@ voiceToTextRouter.post(
       });
 
       res.status(200).json({
-        request_id: res.locals.requestId,
+        request_id: requestId,
         transcript: {
           raw_text: voiceToTextResult.rawText,
           clean_text: voiceToTextResult.cleanText

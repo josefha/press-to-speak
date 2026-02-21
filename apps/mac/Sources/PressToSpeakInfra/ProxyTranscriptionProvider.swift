@@ -92,6 +92,20 @@ public final class ProxyTranscriptionProvider: TranscriptionProvider {
             return nil
         }
 
+        // New API contract: { "transcript": { "clean_text": "...", "raw_text": "..." } }
+        if let transcript = object["transcript"] as? [String: Any] {
+            let nestedCandidates = ["clean_text", "raw_text"]
+            for key in nestedCandidates {
+                if let value = transcript[key] as? String {
+                    let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                    if !trimmed.isEmpty {
+                        return trimmed
+                    }
+                }
+            }
+        }
+
+        // Backward-compatible fallbacks.
         let candidates = ["text", "transcript", "result", "output", "content"]
         for key in candidates {
             if let value = object[key] as? String {
@@ -107,6 +121,15 @@ public final class ProxyTranscriptionProvider: TranscriptionProvider {
 
     private static func extractErrorMessage(from data: Data) -> String {
         if let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            if let errorObject = object["error"] as? [String: Any] {
+                if let message = errorObject["message"] as? String, !message.isEmpty {
+                    return message
+                }
+                if let detail = errorObject["detail"] as? String, !detail.isEmpty {
+                    return detail
+                }
+            }
+
             if let message = object["message"] as? String, !message.isEmpty {
                 return message
             }

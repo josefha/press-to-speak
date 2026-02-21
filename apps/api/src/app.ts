@@ -1,13 +1,11 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
-import pino from "pino";
 import pinoHttp from "pino-http";
 import { requestContext } from "./middleware/requestContext";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { voiceToTextRouter } from "./routes/voiceToTextRoute";
-
-const logger = pino({ name: "press-to-speak-api" });
+import { logger } from "./lib/logger";
 
 export function createApp(): express.Express {
   const app = express();

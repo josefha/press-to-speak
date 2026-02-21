@@ -24,13 +24,15 @@ So the mac app remains focused on UX, while the API layer owns policy, metering,
 ## Common Commands (from repo root)
 
 ```bash
-make run
-make build
-make package-app
-make install-local
+make mac-run              # run from SwiftPM (no install)
+make mac-build-binary     # build .build/release/PressToSpeakApp
+make mac-build-app        # package apps/mac/dist/PressToSpeak.app
+make mac-install-app      # install /Applications/PressToSpeak.app
+make mac-open-app         # open /Applications/PressToSpeak.app
+make mac-install-and-open # install, then open
 ```
 
-These commands forward to `apps/mac`.
+Legacy aliases still work: `make run`, `make build`, `make package-app`, `make install-local`.
 
 API commands:
 
