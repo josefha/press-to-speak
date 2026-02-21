@@ -4,6 +4,10 @@ import SwiftUI
 struct PressToSpeakMenuBarApp: App {
     @StateObject private var viewModel = AppViewModel()
 
+    init() {
+        BrandFontLoader.registerIfNeeded()
+    }
+
     var body: some Scene {
         MenuBarExtra {
             MenuBarContentView(viewModel: viewModel)

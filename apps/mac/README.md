@@ -139,6 +139,7 @@ When run from monorepo root with `make package-app`, output is at:
 
 Branding notes:
 - Menu bar/header logos are loaded from `Sources/PressToSpeakApp/Resources/Branding/`.
+- App theme tokens (colors, typography, button system) are documented in `docs/brand-guidelines.md`.
 - Packaging generates `Contents/Resources/AppIcon.icns` from `logo-dark.svg` (fallback `logo-dark.png`) and sets `CFBundleIconFile`.
 - SwiftPM resource bundles are copied into `Contents/Resources/` during packaging.
 

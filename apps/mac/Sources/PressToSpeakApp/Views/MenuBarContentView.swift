@@ -9,18 +9,20 @@ struct MenuBarContentView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Status:")
-                    .font(.headline)
+                    .font(AppTypography.bodySemibold(size: 14))
                 Text(viewModel.statusLabel)
+                    .font(AppTypography.body(size: 14))
             }
 
             Text("Hold \(viewModel.activeShortcutLabel) to speak in any app.")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(AppTypography.body(size: 13))
+                .foregroundStyle(AppPalette.mutedText)
                 .fixedSize(horizontal: false, vertical: true)
 
             if !viewModel.hasAccessibilityPermission {
                 Text("Accessibility permission is required for global hotkey and paste.")
-                    .foregroundStyle(.orange)
+                    .font(AppTypography.body(size: 13))
+                    .foregroundStyle(AppPalette.warning)
                     .fixedSize(horizontal: false, vertical: true)
 
                 Button("Grant Accessibility Permission") {
@@ -43,7 +45,8 @@ struct MenuBarContentView: View {
 
                 if !viewModel.lastError.isEmpty {
                     Text(viewModel.lastError)
-                        .foregroundStyle(.red)
+                        .font(AppTypography.body(size: 13))
+                        .foregroundStyle(AppPalette.error)
                         .fixedSize(horizontal: false, vertical: true)
 
                     Button("Clear Error") {
@@ -62,8 +65,8 @@ struct MenuBarContentView: View {
                     openDashboard()
                 } label: {
                     Text("Login to start using")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.green)
+                        .font(AppTypography.bodySemibold(size: 13))
+                        .foregroundStyle(AppPalette.success)
                 }
                 .buttonStyle(.plain)
             }
@@ -79,6 +82,7 @@ struct MenuBarContentView: View {
             }
         }
         .padding(14)
+        .font(AppTypography.body(size: 13))
         .frame(width: 320)
         .onAppear {
             viewModel.refreshUIStateOnOpen()

@@ -3,7 +3,9 @@ import Foundation
 
 public enum AccessibilityPermissionService {
     public static func isTrusted() -> Bool {
-        AXIsProcessTrusted()
+        let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+        let options = [key: false] as CFDictionary
+        return AXIsProcessTrustedWithOptions(options)
     }
 
     public static func promptIfNeeded() {

@@ -7,7 +7,7 @@ struct MainDashboardView: View {
     @State private var showPrevious = false
     @Environment(\.colorScheme) private var colorScheme
 
-    private let websiteURL = URL(string: "https://press-to-speak-jes3r9liz-josef-karakocas-projects.vercel.app")!
+    private let websiteURL = URL(string: "https://www.presstospeak.com/")!
 
     var body: some View {
         ZStack {
@@ -27,6 +27,8 @@ struct MainDashboardView: View {
                 .padding(22)
             }
         }
+        .font(AppTypography.body())
+        .foregroundStyle(AppPalette.ink)
         .frame(minWidth: 820, minHeight: 700)
         .onAppear {
             viewModel.refreshUIStateOnOpen()
@@ -54,7 +56,7 @@ struct MainDashboardView: View {
                                 )
                             Image(systemName: "waveform.and.mic")
                                 .font(.title2.weight(.semibold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(AppPalette.onInk)
                         }
                     }
                 }
@@ -62,10 +64,10 @@ struct MainDashboardView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("PressToSpeak")
-                        .font(.title2.weight(.semibold))
+                        .font(AppTypography.brandHeading(size: 34))
                     Text("Hold to record. Release to transcribe and paste anywhere.")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.body(size: 14))
+                        .foregroundStyle(AppPalette.mutedText)
                 }
 
                 Spacer()
@@ -74,7 +76,11 @@ struct MainDashboardView: View {
                     Image(systemName: "globe")
                         .font(.callout.weight(.medium))
                         .padding(9)
+                        .foregroundStyle(AppPalette.ink)
                         .background(AppPalette.softBlue)
+                        .overlay(
+                            Circle().stroke(AppPalette.border, lineWidth: 1)
+                        )
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -83,10 +89,10 @@ struct MainDashboardView: View {
 
             HStack(spacing: 10) {
                 Label(viewModel.statusLabel, systemImage: statusIcon)
-                    .font(.subheadline.weight(.medium))
+                    .font(AppTypography.bodyMedium(size: 14))
                     .padding(.vertical, 6)
                     .padding(.horizontal, 10)
-                    .background(statusColor.opacity(0.14))
+                    .background(statusBackgroundColor)
                     .foregroundStyle(statusColor)
                     .clipShape(Capsule())
             }
@@ -94,8 +100,8 @@ struct MainDashboardView: View {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 10) {
                     Text(viewModel.hotkeyCaptureHelpText)
-                        .font(.callout)
-                        .foregroundStyle(viewModel.isCapturingHotkey ? AppPalette.warning : .secondary)
+                        .font(AppTypography.body(size: 14))
+                        .foregroundStyle(viewModel.isCapturingHotkey ? AppPalette.warning : AppPalette.mutedText)
 
                     Spacer()
 
@@ -103,20 +109,19 @@ struct MainDashboardView: View {
                         Button("Cancel") {
                             viewModel.cancelHotkeyUpdate()
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.brandSecondary)
                     } else {
                         Button("Update Hotkey") {
                             viewModel.beginHotkeyUpdate()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(AppPalette.brandBottom)
+                        .buttonStyle(.brandPrimary)
                     }
                 }
 
                 if viewModel.isCapturingHotkey {
                     Text("Press one key or a key combo, for example ⌘ + ,")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .font(AppTypography.body(size: 12))
+                        .foregroundStyle(AppPalette.mutedText)
                 }
             }
         }
@@ -127,12 +132,12 @@ struct MainDashboardView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("PressToSpeak Account")
-                    .font(.headline)
+                    .font(AppTypography.brandHeading(size: 22))
                 Spacer()
 
                 if viewModel.isUsingMockAccountAuth {
                     Label("Mock Mode", systemImage: "wrench.and.screwdriver.fill")
-                        .font(.caption.weight(.semibold))
+                        .font(AppTypography.bodySemibold(size: 12))
                         .foregroundStyle(AppPalette.warning)
                 }
             }
@@ -143,24 +148,24 @@ struct MainDashboardView: View {
                         Circle()
                             .fill(AppPalette.softBlue)
                         Text(viewModel.accountProfileInitial)
-                            .font(.title3.weight(.semibold))
-                            .foregroundStyle(AppPalette.brandBottom)
+                            .font(AppTypography.brandHeading(size: 20))
+                            .foregroundStyle(AppPalette.ink)
                     }
                     .frame(width: 42, height: 42)
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(viewModel.accountProfileName)
-                            .font(.subheadline.weight(.semibold))
+                            .font(AppTypography.bodySemibold(size: 14))
 
                         HStack(spacing: 8) {
                             if !viewModel.accountProfileEmail.isEmpty {
                                 Text(viewModel.accountProfileEmail)
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(AppTypography.body(size: 12))
+                                    .foregroundStyle(AppPalette.mutedText)
                             }
 
                             Text(viewModel.accountTierLabel)
-                                .font(.caption.weight(.semibold))
+                                .font(AppTypography.bodySemibold(size: 12))
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 2)
                                 .background(AppPalette.softGray)
@@ -174,19 +179,18 @@ struct MainDashboardView: View {
                 Button("Sign Out") {
                     viewModel.signOutFromPressToSpeakAccount()
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                .buttonStyle(.brandSecondary)
             } else {
                 Text("A free PressToSpeak account is required to use transcription.")
-                    .font(.subheadline)
+                    .font(AppTypography.body(size: 14))
                 Text("Create an account or log in to continue.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.body(size: 14))
+                    .foregroundStyle(AppPalette.mutedText)
 
                 if !viewModel.isAccountAuthConfigured {
                     Text("Missing TRANSCRIPTION_PROXY_URL in app environment.")
-                        .font(.caption)
-                        .foregroundStyle(.red)
+                        .font(AppTypography.body(size: 12))
+                        .foregroundStyle(AppPalette.error)
                 }
 
                 if viewModel.shouldShowAccountAuthForm {
@@ -199,25 +203,19 @@ struct MainDashboardView: View {
                         Button(viewModel.accountSubmitButtonTitle) {
                             viewModel.submitCurrentAccountFlow()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
+                        .buttonStyle(.brandPrimary)
                         .disabled(viewModel.isAuthInProgress)
-                        .frame(minHeight: 40)
-                        .tint(AppPalette.brandBottom)
 
                         Button(viewModel.accountSwitchButtonTitle) {
                             viewModel.switchAccountFlow()
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
+                        .buttonStyle(.brandSecondary)
                         .disabled(viewModel.isAuthInProgress)
-                        .frame(minHeight: 40)
 
                         Button("Cancel") {
                             viewModel.cancelAccountFlow()
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
+                        .buttonStyle(.brandSecondary)
                         .disabled(viewModel.isAuthInProgress)
                     }
                 } else {
@@ -225,31 +223,17 @@ struct MainDashboardView: View {
                         Button("Log In to Transcribe") {
                             viewModel.beginSignInFlow()
                         }
-                        .buttonStyle(.borderedProminent)
-                        .controlSize(.large)
-                        .frame(minHeight: 40)
-                        .tint(AppPalette.brandBottom)
+                        .buttonStyle(.brandPrimary)
 
                         Button("Create Free Account") {
                             viewModel.beginCreateAccountFlow()
                         }
-                        .buttonStyle(.bordered)
-                        .controlSize(.large)
-                        .frame(minHeight: 40)
+                        .buttonStyle(.brandSecondary)
                     }
                 }
 
                 if !viewModel.accountAuthError.isEmpty {
-                    HStack(spacing: 8) {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.red)
-                        Text(viewModel.accountAuthError)
-                            .foregroundStyle(.red)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    .padding(10)
-                    .background(Color.red.opacity(0.08))
-                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                    errorBanner(viewModel.accountAuthError)
                 }
             }
         }
@@ -259,30 +243,23 @@ struct MainDashboardView: View {
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quick Actions")
-                .font(.headline)
+                .font(AppTypography.brandHeading(size: 22))
 
             HStack(spacing: 10) {
                 Button {
                     viewModel.startCapture()
                 } label: {
                     Label("Start Recording", systemImage: "mic.fill")
-                        .padding(.horizontal, 6)
-                        .frame(minHeight: 34)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .buttonStyle(.brandPrimary)
                 .disabled(!viewModel.canTranscribe)
-                .tint(AppPalette.brandBottom)
 
                 Button {
                     viewModel.finishCapture()
                 } label: {
                     Label("Stop + Transcribe", systemImage: "waveform")
-                        .padding(.horizontal, 6)
-                        .frame(minHeight: 34)
                 }
-                .buttonStyle(.bordered)
-                .controlSize(.large)
+                .buttonStyle(.brandSecondary)
                 .disabled(!viewModel.canTranscribe)
 
                 Spacer()
@@ -290,21 +267,12 @@ struct MainDashboardView: View {
 
             if !viewModel.canTranscribe {
                 Text("Sign in above to enable transcription.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppTypography.body(size: 12))
+                    .foregroundStyle(AppPalette.mutedText)
             }
 
             if !viewModel.lastError.isEmpty {
-                HStack(spacing: 8) {
-                    Image(systemName: "exclamationmark.triangle.fill")
-                        .foregroundStyle(.red)
-                    Text(viewModel.lastError)
-                        .foregroundStyle(.red)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(10)
-                .background(Color.red.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                errorBanner(viewModel.lastError)
             }
         }
         .cardStyle()
@@ -313,7 +281,7 @@ struct MainDashboardView: View {
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Transcription Settings")
-                .font(.headline)
+                .font(AppTypography.brandHeading(size: 22))
 
             TextField("Locale (optional)", text: $viewModel.settingsStore.settings.locale)
                 .textFieldStyle(.roundedBorder)
@@ -343,7 +311,7 @@ struct MainDashboardView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Latest transcription")
-                    .font(.headline)
+                    .font(AppTypography.brandHeading(size: 22))
                 Spacer()
 
                 if let latest = viewModel.historyItems.first {
@@ -353,13 +321,14 @@ struct MainDashboardView: View {
                         Image(systemName: "doc.on.doc")
                             .font(.callout.weight(.medium))
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.brandSecondary)
                     .help("Copy latest transcription")
                 }
             }
 
             if let latest = viewModel.historyItems.first {
                 Text(latest.text)
+                    .font(AppTypography.body(size: 14))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
@@ -367,20 +336,20 @@ struct MainDashboardView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             } else {
                 Text("No transcriptions yet.")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(AppPalette.mutedText)
             }
 
             HStack(spacing: 10) {
                 Button(showPrevious ? "Hide Previous" : "View Previous") {
                     showPrevious.toggle()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.brandSecondary)
 
                 if !viewModel.historyItems.isEmpty {
                     Button("Clear History") {
                         viewModel.clearHistory()
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(.brandSecondary)
                 }
             }
         }
@@ -392,19 +361,20 @@ struct MainDashboardView: View {
         if showPrevious {
             VStack(alignment: .leading, spacing: 10) {
                 Text("Previous")
-                    .font(.headline)
+                    .font(AppTypography.brandHeading(size: 22))
 
                 if viewModel.historyItems.dropFirst().isEmpty {
                     Text("No previous entries yet.")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(AppPalette.mutedText)
                 } else {
                     ForEach(Array(viewModel.historyItems.dropFirst().prefix(30))) { item in
                         HStack(alignment: .top, spacing: 10) {
                             VStack(alignment: .leading, spacing: 6) {
                                 Text(item.createdAt.formatted(date: .abbreviated, time: .shortened))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .font(AppTypography.body(size: 12))
+                                    .foregroundStyle(AppPalette.mutedText)
                                 Text(item.text)
+                                    .font(AppTypography.body(size: 14))
                                     .lineLimit(4)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }
@@ -414,7 +384,7 @@ struct MainDashboardView: View {
                             } label: {
                                 Image(systemName: "doc.on.doc")
                             }
-                            .buttonStyle(.bordered)
+                            .buttonStyle(.brandSecondary)
                             .help("Copy this transcription")
                         }
                         .padding(11)
@@ -430,7 +400,7 @@ struct MainDashboardView: View {
     private var permissionSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             Text("Permissions")
-                .font(.headline)
+                .font(AppTypography.brandHeading(size: 22))
 
             Text(
                 viewModel.hasAccessibilityPermission
@@ -443,12 +413,12 @@ struct MainDashboardView: View {
                 Button("Grant Accessibility") {
                     viewModel.requestAccessibilityPermissionPrompt()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.brandSecondary)
 
                 Button("Refresh") {
                     viewModel.refreshAccessibilityPermission()
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.brandSecondary)
             }
         }
         .cardStyle()
@@ -457,12 +427,12 @@ struct MainDashboardView: View {
     private func textArea(title: String, text: Binding<String>, minHeight: CGFloat) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.subheadline.weight(.medium))
+                .font(AppTypography.bodyMedium(size: 13))
             TextEditor(text: text)
-                .font(.body)
+                .font(AppTypography.body(size: 14))
                 .frame(minHeight: minHeight)
                 .padding(8)
-                .background(.white)
+                .background(AppPalette.card)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(AppPalette.border, lineWidth: 1)
@@ -471,16 +441,47 @@ struct MainDashboardView: View {
         }
     }
 
+    private func errorBanner(_ message: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(AppPalette.error)
+            Text(message)
+                .font(AppTypography.body(size: 13))
+                .foregroundStyle(AppPalette.error)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(10)
+        .background(AppPalette.errorSoft)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(AppPalette.error.opacity(0.35), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+    }
+
+    private var statusBackgroundColor: Color {
+        switch viewModel.status {
+        case .idle:
+            return AppPalette.successSoft
+        case .recording:
+            return AppPalette.errorSoft
+        case .transcribing:
+            return AppPalette.warningSoft
+        case .error:
+            return AppPalette.errorSoft
+        }
+    }
+
     private var statusColor: Color {
         switch viewModel.status {
         case .idle:
             return AppPalette.success
         case .recording:
-            return .red
+            return AppPalette.error
         case .transcribing:
             return AppPalette.warning
         case .error:
-            return .red
+            return AppPalette.error
         }
     }
 
@@ -495,44 +496,5 @@ struct MainDashboardView: View {
         case .error:
             return "xmark.circle.fill"
         }
-    }
-}
-
-private enum AppPalette {
-    static let canvas = LinearGradient(
-        colors: [
-            Color(red: 0.98, green: 0.99, blue: 1.0),
-            Color(red: 0.965, green: 0.98, blue: 1.0)
-        ],
-        startPoint: .top,
-        endPoint: .bottom
-    )
-
-    static let brandTop = Color(red: 0.26, green: 0.57, blue: 0.99)
-    static let brandBottom = Color(red: 0.13, green: 0.41, blue: 0.95)
-    static let softBlue = Color(red: 0.90, green: 0.95, blue: 1.0)
-    static let softGray = Color(red: 0.96, green: 0.97, blue: 0.98)
-    static let border = Color(red: 0.87, green: 0.90, blue: 0.94)
-    static let success = Color(red: 0.15, green: 0.55, blue: 0.30)
-    static let warning = Color(red: 0.82, green: 0.52, blue: 0.14)
-}
-
-private struct CardModifier: ViewModifier {
-    func body(content: Content) -> some View {
-        content
-            .padding(18)
-            .background(.white)
-            .overlay(
-                RoundedRectangle(cornerRadius: 18, style: .continuous)
-                    .stroke(AppPalette.border, lineWidth: 1)
-            )
-            .shadow(color: Color.black.opacity(0.06), radius: 12, x: 0, y: 6)
-            .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private extension View {
-    func cardStyle() -> some View {
-        modifier(CardModifier())
     }
 }

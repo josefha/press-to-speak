@@ -39,6 +39,7 @@ final class AppViewModel: ObservableObject {
     private let hotkeyCaptureService: HotkeyCaptureService
     private var accountSession: PressToSpeakAccountSession?
     private var accountStateRefreshTask: Task<Void, Never>?
+    private var accessibilityStateRefreshTask: Task<Void, Never>?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -98,6 +99,22 @@ final class AppViewModel: ObservableObject {
             .sink { [weak self] items in
                 self?.historyItems = items
                 self?.lastTranscription = items.first?.text ?? ""
+            }
+            .store(in: &cancellables)
+
+        NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)
+            .sink { [weak self] _ in
+                self?.refreshUIStateOnOpen()
+            }
+            .store(in: &cancellables)
+
+        Timer.publish(every: 0.5, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                guard let self, !self.hasAccessibilityPermission else {
+                    return
+                }
+                self.refreshAccessibilityPermission()
             }
             .store(in: &cancellables)
     }
@@ -302,6 +319,25 @@ final class AppViewModel: ObservableObject {
 
     func refreshUIStateOnOpen() {
         refreshAccessibilityPermission()
+
+        accessibilityStateRefreshTask?.cancel()
+        accessibilityStateRefreshTask = Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            try? await Task.sleep(nanoseconds: 350_000_000)
+            guard !Task.isCancelled else {
+                return
+            }
+            self.refreshAccessibilityPermission()
+
+            try? await Task.sleep(nanoseconds: 850_000_000)
+            guard !Task.isCancelled else {
+                return
+            }
+            self.refreshAccessibilityPermission()
+        }
 
         accountStateRefreshTask?.cancel()
         accountStateRefreshTask = Task { [weak self] in
