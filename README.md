@@ -1,16 +1,14 @@
 # PressToSpeak Monorepo
 
-PressToSpeak.com is an open-source voice-to-text app for macOS.
-
+[presstospeak.com](https://www.presstospeak.com/) is an open-source voice-to-text app for macOS.
 Press a shortcut, speak naturally, and let AI turn rough speech into clean, polished text that can be pasted into any app.
 
-Download PressToSpeak for Mac at [https://www.presstospeak.com/](https://www.presstospeak.com/).
+Keyboard -> 50 words per minutes
+PressToSpeak -> 200 words per minutes
 
-## Use PressToSpeak Now
+## How to use PressToSpeak Now
 
-If you just want to use PressToSpeak:
-
-1. Download the macOS app from [https://www.presstospeak.com/](https://www.presstospeak.com/).
+1. Download the macOS app from [presstospeak.com/](https://www.presstospeak.com/).
 2. Open the app and create an account (or log in) with your PressToSpeak.com account.
 3. Start dictating with the default PressToSpeak account mode.
 
