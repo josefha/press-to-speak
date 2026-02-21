@@ -17,12 +17,17 @@ struct MainDashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     heroSection
+                    if !viewModel.hasAccessibilityPermission {
+                        permissionSection
+                    }
                     accountAccessSection
                     quickActionsSection
                     latestTranscriptionSection
                     previousTranscriptionsSection
                     settingsSection
-                    permissionSection
+                    if viewModel.hasAccessibilityPermission {
+                        permissionSection
+                    }
                 }
                 .padding(22)
             }
@@ -114,7 +119,7 @@ struct MainDashboardView: View {
                         Button("Update Hotkey") {
                             viewModel.beginHotkeyUpdate()
                         }
-                        .buttonStyle(.brandPrimary)
+                        .buttonStyle(.brandSecondary)
                     }
                 }
 
@@ -220,13 +225,13 @@ struct MainDashboardView: View {
                     }
                 } else {
                     HStack(spacing: 10) {
-                        Button("Log In to Transcribe") {
-                            viewModel.beginSignInFlow()
+                        Button("Create Free Account") {
+                            viewModel.beginCreateAccountFlow()
                         }
                         .buttonStyle(.brandPrimary)
 
-                        Button("Create Free Account") {
-                            viewModel.beginCreateAccountFlow()
+                        Button("Log In to Transcribe") {
+                            viewModel.beginSignInFlow()
                         }
                         .buttonStyle(.brandSecondary)
                     }
@@ -421,6 +426,7 @@ struct MainDashboardView: View {
                 .buttonStyle(.brandSecondary)
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .cardStyle()
     }
 

@@ -22,7 +22,7 @@ struct PressToSpeakMenuBarApp: App {
             }
         }
 
-        Window("PressToSpeak", id: "main-dashboard") {
+        Window("", id: "main-dashboard") {
             MainDashboardView(viewModel: viewModel)
                 .frame(minWidth: 780, minHeight: 680)
                 .preferredColorScheme(.light)
