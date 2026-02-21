@@ -105,12 +105,17 @@ make package-app
 make install-local
 ```
 
-5. Build website distribution artifacts:
+5. Build production website distribution artifacts (recommended):
+```bash
+make production-export
+```
+
+6. Build website distribution artifacts from current packaged app:
 ```bash
 make release-artifacts
 ```
 
-6. Notarize release artifacts (after Developer ID signing):
+7. Notarize release artifacts (after Developer ID signing):
 ```bash
 NOTARY_PROFILE=\"press-to-speak-notary\" make notarized-release
 ```
@@ -121,8 +126,9 @@ App target:
 
 ## Env Configuration
 
-Project env file:
+Project env files:
 - `apps/mac/.env` (or `.env` when your shell cwd is `apps/mac`)
+- `apps/mac/.env.production` for website release builds (`make production-export`)
 
 Important keys:
 - `TRANSCRIPTION_PROXY_URL`
@@ -140,7 +146,8 @@ Supabase auth mode note:
 - do not set API `SUPABASE_JWT_SECRET` to `sb_secret_*`; leave it unset unless explicitly targeting legacy HS256 JWT setups.
 
 Packaging behavior:
-- `.env` is copied into app bundle as `Contents/Resources/app.env`.
+- packaging script uses `APP_ENV_FILE` (defaults to `.env`) and copies it into app bundle as `Contents/Resources/app.env`.
+- `make production-export` uses `.env.production` and forces `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=false`.
 - SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
 - App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg` (fallback `logo-dark.png`).
 - `AppConfiguration` loads bundled env + working directory env + process env.

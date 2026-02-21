@@ -1,8 +1,8 @@
 MAC_APP_DIR := apps/mac
 API_APP_DIR := apps/api
 
-.PHONY: run build package-app release-artifacts notarized-release install-local clean \
-	mac-run mac-build-binary mac-build-app mac-install-app mac-open-app mac-install-and-open mac-help \
+.PHONY: run build package-app release-artifacts production-export notarized-release install-local clean \
+	mac-run mac-build-binary mac-build-app mac-production-export mac-install-app mac-open-app mac-install-and-open mac-help \
 	api-docs api-install api-dev api-build api-typecheck
 
 run: mac-run
@@ -25,6 +25,11 @@ mac-build-app:
 release-artifacts:
 	$(MAKE) -C $(MAC_APP_DIR) release-artifacts
 
+production-export: mac-production-export
+
+mac-production-export:
+	$(MAKE) -C $(MAC_APP_DIR) production-export
+
 notarized-release:
 	$(MAKE) -C $(MAC_APP_DIR) notarized-release
 
@@ -44,6 +49,7 @@ mac-help:
 	@echo "make mac-run              # run from SwiftPM (no install)"
 	@echo "make mac-build-binary     # compile release binary"
 	@echo "make mac-build-app        # package .app to apps/mac/dist"
+	@echo "make mac-production-export # build website release artifacts using apps/mac/.env.production"
 	@echo "make mac-install-app      # install to /Applications/PressToSpeak.app"
 	@echo "make mac-open-app         # open /Applications/PressToSpeak.app"
 	@echo "make mac-install-and-open # install then open"

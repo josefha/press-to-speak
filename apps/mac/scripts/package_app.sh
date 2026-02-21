@@ -14,6 +14,8 @@ ICON_FILE="${RESOURCES_DIR}/${ICON_NAME}.icns"
 ICON_SVG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg"
 ICON_PNG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.png"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
+APP_ENV_FILE="${APP_ENV_FILE:-.env}"
+APP_ENV_REQUIRED="${APP_ENV_REQUIRED:-false}"
 
 generate_app_icon() {
   local iconset_dir
@@ -86,9 +88,15 @@ done
 
 generate_app_icon
 
-# Package local env for installed app use (optional).
-if [[ -f ".env" ]]; then
-  cp ".env" "${RESOURCES_DIR}/app.env"
+# Package environment for installed app use.
+if [[ -n "${APP_ENV_FILE}" && -f "${APP_ENV_FILE}" ]]; then
+  cp "${APP_ENV_FILE}" "${RESOURCES_DIR}/app.env"
+  echo "Bundled app environment from ${APP_ENV_FILE}"
+elif [[ "${APP_ENV_REQUIRED}" == "true" ]]; then
+  echo "Missing required APP_ENV_FILE: ${APP_ENV_FILE}" >&2
+  exit 1
+else
+  echo "No app environment bundled (APP_ENV_FILE not found: ${APP_ENV_FILE})"
 fi
 
 cat > "${CONTENTS_DIR}/Info.plist" <<PLIST

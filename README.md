@@ -55,6 +55,7 @@ So the mac app remains focused on UX, while the API layer owns policy, metering,
 make mac-run              # run from SwiftPM (no install)
 make mac-build-binary     # build .build/release/PressToSpeakApp
 make mac-build-app        # package apps/mac/dist/PressToSpeak.app
+make mac-production-export # build website artifacts with apps/mac/.env.production
 make mac-install-app      # install /Applications/PressToSpeak.app
 make mac-open-app         # open /Applications/PressToSpeak.app
 make mac-install-and-open # install, then open
@@ -85,6 +86,7 @@ apps/
 - Detailed plan: `apps/api/docs/architecture.md`
 - LLM provider decision: `apps/api/docs/llm-provider-decision.md`
 - Implementation roadmap: `apps/api/docs/roadmap.md`
+- Render monorepo deploy blueprint: `render.yaml`
 
 ## License
 

@@ -219,6 +219,36 @@ Logging controls:
 - `LOG_PROVIDER_PAYLOADS` (`true` by default in development): logs ElevenLabs/OpenAI payload previews for inspection.
 - `LOG_TEXT_MAX_CHARS` (default `1200`): max chars for transcript/payload previews before truncation.
 
+## Deploy to Render (GitHub + Monorepo)
+
+This repository includes a Render Blueprint at `render.yaml` configured for:
+
+- monorepo root directory `apps/api`
+- build command `npm ci && npm run build`
+- start command `npm run start`
+- health check `/healthz`
+
+Steps:
+
+1. Push this repo to GitHub.
+2. In Render, click **New +** -> **Blueprint**.
+3. Connect/select your GitHub repo and choose the branch you want to deploy.
+4. Render reads `render.yaml` and creates `press-to-speak-api`.
+5. Fill required secret env vars in Render:
+   - `OPENAI_API_KEY`
+   - `ELEVENLABS_API_KEY`
+   - `PROXY_SHARED_API_KEY`
+   - `SUPABASE_URL`
+   - `SUPABASE_PUBLISHABLE_KEY`
+6. Deploy and verify `GET /healthz` returns 200.
+
+Security defaults in Blueprint:
+
+- `USER_AUTH_MODE=required`
+- `ALLOW_UNAUTHENTICATED_BYOK=false`
+- transcript/provider payload logging disabled (`LOG_PIPELINE_TEXT=false`, `LOG_PROVIDER_PAYLOADS=false`)
+- no `SUPABASE_JWT_SECRET` configured (JWKS verification path)
+
 ## Architecture Docs
 
 - `docs/architecture.md`

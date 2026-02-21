@@ -20,6 +20,7 @@ From repo root:
 make mac-run              # run from SwiftPM (no install)
 make mac-build-binary     # build .build/release/PressToSpeakApp
 make mac-build-app        # package apps/mac/dist/PressToSpeak.app
+make mac-production-export # build website artifacts with apps/mac/.env.production
 make mac-install-app      # install /Applications/PressToSpeak.app
 make mac-open-app         # open /Applications/PressToSpeak.app
 make mac-install-and-open # install, then open
@@ -28,6 +29,11 @@ make api-build
 ```
 
 Legacy aliases still work: `make run`, `make build`, `make package-app`, `make install-local`.
+
+## Deployment
+
+- API hosting baseline: Render Blueprint at repo root `render.yaml` with service `rootDir: apps/api`.
+- Keep Blueprint env defaults aligned with `apps/api/src/config/env.ts` and `apps/api/.env.example`.
 
 ## Where to Change What
 

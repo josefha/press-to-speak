@@ -38,6 +38,12 @@ swift --version
 cp .env.example .env
 ```
 
+For website production builds, create a dedicated release config:
+
+```bash
+cp .env.production.example .env.production
+```
+
 Edit `.env` and set at least:
 
 - `TRANSCRIPTION_PROXY_URL`
@@ -155,7 +161,7 @@ Yes, you can distribute this app from your website without the Mac App Store.
 
 - Without paid Apple Developer signing/notarization: you can still distribute, but users may see stronger Gatekeeper warnings and need manual override steps.
 
-### Build downloadable artifacts (`.zip` + `.dmg`)
+### Build downloadable artifacts from the current packaged app (`.zip` + `.dmg`)
 
 ```bash
 make release-artifacts
@@ -165,11 +171,35 @@ Outputs:
 - `dist/release/PressToSpeak-<version>-macOS.zip`
 - `dist/release/PressToSpeak-<version>-macOS.dmg`
 
+### Production export with a separate API URL (recommended)
+
+1. Configure production env values in `.env.production`:
+```bash
+cp .env.production.example .env.production
+```
+
+2. Export production artifacts:
+```bash
+make production-export
+```
+
+Optional one-off API URL override (useful before your final API is live):
+
+```bash
+PRODUCTION_PROXY_URL="https://api.your-domain.com/v1/voice-to-text" make production-export
+```
+
+Production export behavior:
+- bundles `.env.production` into the app as `Contents/Resources/app.env`
+- forces `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=false`
+- avoids shipping local development `.env` values by default
+- produces `dist/release/*.zip` and `dist/release/*.dmg`
+
 ### Recommended production release flow (signed + notarized)
 
 1. Use a Developer ID identity:
 ```bash
-CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make release-artifacts
+CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make production-export
 ```
 
 2. Notarize and staple:

@@ -1,0 +1,40 @@
+services:
+  - type: web
+    name: press-to-speak-api
+    runtime: node
+    rootDir: apps/api
+    autoDeployTrigger: commit
+    buildCommand: npm ci && npm run build
+    startCommand: npm run start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: NODE_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: info
+      - key: LOG_PRETTY
+        value: "false"
+      - key: LOG_PIPELINE_TEXT
+        value: "false"
+      - key: LOG_PROVIDER_PAYLOADS
+        value: "false"
+      - key: OPENAI_MODEL
+        value: gpt-5-mini
+      - key: USER_AUTH_MODE
+        value: required
+      - key: ALLOW_UNAUTHENTICATED_BYOK
+        value: "false"
+      - key: SUPABASE_JWT_AUDIENCE
+        value: authenticated
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: PROXY_SHARED_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_PUBLISHABLE_KEY
+        sync: false
