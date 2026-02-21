@@ -22,7 +22,7 @@
 
 ## Phase D: Users + Data + billing primitives
 
-- Supabase integration for user + usage events (JWT verification implemented; DB persistence pending)
+- Supabase integration for user + usage events (JWT verification + auth endpoints implemented; DB persistence pending)
 - BYOK open-route key overrides + unauthenticated rate limiting baseline
 - quota checks
 - billing event abstraction for future Polar integration

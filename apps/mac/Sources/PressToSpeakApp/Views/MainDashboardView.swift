@@ -16,6 +16,7 @@ struct MainDashboardView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     heroSection
+                    accountAccessSection
                     quickActionsSection
                     latestTranscriptionSection
                     previousTranscriptionsSection
@@ -112,6 +113,139 @@ struct MainDashboardView: View {
         .cardStyle()
     }
 
+    private var accountAccessSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("PressToSpeak Account")
+                    .font(.headline)
+                Spacer()
+
+                if viewModel.isUsingMockAccountAuth {
+                    Label("Mock Mode", systemImage: "wrench.and.screwdriver.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(AppPalette.warning)
+                }
+            }
+
+            if viewModel.isAccountAuthenticated {
+                HStack(spacing: 12) {
+                    ZStack {
+                        Circle()
+                            .fill(AppPalette.softBlue)
+                        Text(viewModel.accountProfileInitial)
+                            .font(.title3.weight(.semibold))
+                            .foregroundStyle(AppPalette.brandBottom)
+                    }
+                    .frame(width: 42, height: 42)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(viewModel.accountProfileName)
+                            .font(.subheadline.weight(.semibold))
+
+                        HStack(spacing: 8) {
+                            if !viewModel.accountProfileEmail.isEmpty {
+                                Text(viewModel.accountProfileEmail)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Text(viewModel.accountTierLabel)
+                                .font(.caption.weight(.semibold))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 2)
+                                .background(AppPalette.softGray)
+                                .clipShape(Capsule())
+                        }
+                    }
+
+                    Spacer()
+                }
+
+                Button("Sign Out") {
+                    viewModel.signOutFromPressToSpeakAccount()
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.large)
+            } else {
+                Text("A free PressToSpeak account is required to use transcription.")
+                    .font(.subheadline)
+                Text("Create an account or log in to continue.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+
+                if !viewModel.isAccountAuthConfigured {
+                    Text("Missing TRANSCRIPTION_PROXY_URL in app environment.")
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                }
+
+                if viewModel.shouldShowAccountAuthForm {
+                    TextField("Email", text: $viewModel.accountEmailInput)
+                        .textFieldStyle(.roundedBorder)
+                    SecureField("Password", text: $viewModel.accountPasswordInput)
+                        .textFieldStyle(.roundedBorder)
+
+                    HStack(spacing: 10) {
+                        Button(viewModel.accountSubmitButtonTitle) {
+                            viewModel.submitCurrentAccountFlow()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .disabled(viewModel.isAuthInProgress)
+                        .frame(minHeight: 40)
+                        .tint(AppPalette.brandBottom)
+
+                        Button(viewModel.accountSwitchButtonTitle) {
+                            viewModel.switchAccountFlow()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(viewModel.isAuthInProgress)
+                        .frame(minHeight: 40)
+
+                        Button("Cancel") {
+                            viewModel.cancelAccountFlow()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .disabled(viewModel.isAuthInProgress)
+                    }
+                } else {
+                    HStack(spacing: 10) {
+                        Button("Log In to Transcribe") {
+                            viewModel.beginSignInFlow()
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.large)
+                        .frame(minHeight: 40)
+                        .tint(AppPalette.brandBottom)
+
+                        Button("Create Free Account") {
+                            viewModel.beginCreateAccountFlow()
+                        }
+                        .buttonStyle(.bordered)
+                        .controlSize(.large)
+                        .frame(minHeight: 40)
+                    }
+                }
+
+                if !viewModel.accountAuthError.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.red)
+                        Text(viewModel.accountAuthError)
+                            .foregroundStyle(.red)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(10)
+                    .background(Color.red.opacity(0.08))
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                }
+            }
+        }
+        .cardStyle()
+    }
+
     private var quickActionsSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Quick Actions")
@@ -127,6 +261,7 @@ struct MainDashboardView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
+                .disabled(!viewModel.canTranscribe)
                 .tint(AppPalette.brandBottom)
 
                 Button {
@@ -138,8 +273,15 @@ struct MainDashboardView: View {
                 }
                 .buttonStyle(.bordered)
                 .controlSize(.large)
+                .disabled(!viewModel.canTranscribe)
 
                 Spacer()
+            }
+
+            if !viewModel.canTranscribe {
+                Text("Sign in above to enable transcription.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             if !viewModel.lastError.isEmpty {
@@ -163,26 +305,6 @@ struct MainDashboardView: View {
             Text("Transcription Settings")
                 .font(.headline)
 
-            Picker("API Mode", selection: $viewModel.settingsStore.settings.apiMode) {
-                ForEach(viewModel.availableAPIModes) { mode in
-                    Text(mode.label).tag(mode)
-                }
-            }
-            .pickerStyle(.segmented)
-
-            if !viewModel.showAdvancedModeOptions {
-                Button("Show Advanced Mode (Bring Your Own Keys)") {
-                    viewModel.showAdvancedModeOptions = true
-                }
-                .buttonStyle(.bordered)
-            }
-
-            if viewModel.settingsStore.settings.apiMode == .pressToSpeakAccount {
-                accountModeSettings
-            } else {
-                byokModeSettings
-            }
-
             TextField("Locale (optional)", text: $viewModel.settingsStore.settings.locale)
                 .textFieldStyle(.roundedBorder)
 
@@ -205,81 +327,6 @@ struct MainDashboardView: View {
             )
         }
         .cardStyle()
-    }
-
-    private var accountModeSettings: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("PressToSpeak Account")
-                .font(.subheadline.weight(.semibold))
-            Text(viewModel.signedInAccountLabel)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            if !viewModel.isSupabaseConfigured {
-                            Text("Missing SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY in app environment.")
-                    .font(.caption)
-                    .foregroundStyle(.red)
-            }
-
-            if viewModel.isAccountAuthenticated {
-                Button("Sign Out") {
-                    viewModel.signOutFromPressToSpeakAccount()
-                }
-                .buttonStyle(.bordered)
-            } else {
-                TextField("Email", text: $viewModel.accountEmailInput)
-                    .textFieldStyle(.roundedBorder)
-                SecureField("Password", text: $viewModel.accountPasswordInput)
-                    .textFieldStyle(.roundedBorder)
-
-                HStack(spacing: 10) {
-                    Button("Sign In") {
-                        viewModel.signInWithPressToSpeakAccount()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(viewModel.isAuthInProgress)
-
-                    Button("Sign Up") {
-                        viewModel.signUpWithPressToSpeakAccount()
-                    }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isAuthInProgress)
-                }
-            }
-        }
-        .padding(10)
-        .background(AppPalette.softGray)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var byokModeSettings: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Bring Your Own Keys")
-                .font(.subheadline.weight(.semibold))
-            Text("Advanced mode. Your keys are stored in macOS Keychain.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            SecureField("OpenAI API Key", text: $viewModel.bringYourOwnOpenAIKeyInput)
-                .textFieldStyle(.roundedBorder)
-            SecureField("ElevenLabs API Key", text: $viewModel.bringYourOwnElevenLabsKeyInput)
-                .textFieldStyle(.roundedBorder)
-
-            HStack(spacing: 10) {
-                Button("Save Keys") {
-                    viewModel.saveBringYourOwnProviderKeys()
-                }
-                .buttonStyle(.borderedProminent)
-
-                Button("Clear Keys") {
-                    viewModel.clearBringYourOwnProviderKeys()
-                }
-                .buttonStyle(.bordered)
-            }
-        }
-        .padding(10)
-        .background(AppPalette.softGray)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
     private var latestTranscriptionSection: some View {

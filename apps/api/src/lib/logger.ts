@@ -9,7 +9,10 @@ const loggerOptions: LoggerOptions = {
       "req.headers.authorization",
       "req.headers.x-api-key",
       "req.headers.x-openai-api-key",
-      "req.headers.x-elevenlabs-api-key"
+      "req.headers.x-elevenlabs-api-key",
+      "req.body.password",
+      "req.body.refresh_token",
+      "req.body.access_token"
     ],
     censor: "[REDACTED]"
   }

@@ -35,7 +35,70 @@ Health check:
 curl http://localhost:8787/healthz
 ```
 
+Run integration tests:
+
+```bash
+npm test
+```
+
 ## API
+
+### `POST /v1/auth/signup`
+
+Creates a Supabase account and returns normalized account/session fields.
+
+Headers:
+
+- `x-api-key` (required only when `PROXY_SHARED_API_KEY` is configured)
+
+JSON body:
+
+- `email` (required)
+- `password` (required, min 8 chars)
+- `profile_name` (optional)
+
+Response fields:
+
+- `account.user_id`
+- `account.email`
+- `account.profile_name`
+- `account.tier` (`free` or `pro`)
+- `session` (`null` if email confirmation is required)
+- `requires_email_confirmation`
+
+### `POST /v1/auth/login`
+
+Signs in with Supabase email/password and returns account + session.
+
+Headers:
+
+- `x-api-key` (required only when `PROXY_SHARED_API_KEY` is configured)
+
+JSON body:
+
+- `email`
+- `password`
+
+### `POST /v1/auth/refresh`
+
+Refreshes a Supabase session.
+
+Headers:
+
+- `x-api-key` (required only when `PROXY_SHARED_API_KEY` is configured)
+
+JSON body:
+
+- `refresh_token`
+
+### `POST /v1/auth/logout`
+
+Invalidates a Supabase session.
+
+Headers:
+
+- `x-api-key` (required only when `PROXY_SHARED_API_KEY` is configured)
+- `Authorization: Bearer <access-token>` (or pass `access_token` in JSON body)
 
 ### `POST /v1/voice-to-text`
 
@@ -115,9 +178,13 @@ Supabase token verification sources:
 - Symmetric JWT secret (`SUPABASE_JWT_SECRET`) if provided.
 - Otherwise JWKS (`SUPABASE_JWKS_URL`, auto-derived from `SUPABASE_URL` by default).
 
+Important: `SUPABASE_JWT_SECRET` is the legacy JWT signing secret, not Supabase API secret keys (`sb_secret_*`).
+For modern asymmetric projects (for example ES256/RS256), leave `SUPABASE_JWT_SECRET` unset and use JWKS verification.
+
 ## Rate Limiting
 
 - Unauthenticated requests are rate-limited with an in-memory fixed window (`UNAUTH_RATE_LIMIT_WINDOW_MS`, `UNAUTH_RATE_LIMIT_MAX_REQUESTS`).
+- Auth routes are rate-limited with a separate in-memory fixed window (`AUTH_ROUTE_RATE_LIMIT_WINDOW_MS`, `AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS`).
 - Response headers include `x-ratelimit-limit`, `x-ratelimit-remaining`, and `x-ratelimit-reset-ms`.
 - For multi-instance production deployments, replace this with centralized rate limiting (Redis or gateway-level).
 
@@ -138,8 +205,12 @@ Auth-related:
 - `UNAUTH_RATE_LIMIT_WINDOW_MS` (default `60000`)
 - `UNAUTH_RATE_LIMIT_MAX_REQUESTS` (default `20`)
 - `SUPABASE_URL` (or explicit `SUPABASE_JWKS_URL`) when auth mode is `optional` or `required` and `SUPABASE_JWT_SECRET` is not set
+- `SUPABASE_PUBLISHABLE_KEY` (required for `/v1/auth/*` route calls)
 - `SUPABASE_JWT_AUDIENCE` (default `authenticated`)
+- `SUPABASE_AUTH_TIMEOUT_MS` (default `5000`)
 - `PROXY_SHARED_API_KEY` (optional shared ingress key)
+- `AUTH_ROUTE_RATE_LIMIT_WINDOW_MS` (default `60000`)
+- `AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS` (default `20`)
 
 Logging controls:
 

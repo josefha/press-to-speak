@@ -81,19 +81,33 @@ const envSchema = z
     UNAUTH_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
     UNAUTH_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20),
     SUPABASE_URL: optionalUrlEnv,
+    SUPABASE_PUBLISHABLE_KEY: optionalStringEnv,
     SUPABASE_JWT_SECRET: optionalStringEnv,
     SUPABASE_JWT_AUDIENCE: z.string().default("authenticated"),
     SUPABASE_JWT_ISSUER: optionalUrlEnv,
     SUPABASE_JWKS_URL: optionalUrlEnv,
-    SUPABASE_JWKS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000)
+    SUPABASE_JWKS_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
+    SUPABASE_AUTH_TIMEOUT_MS: z.coerce.number().int().positive().default(5000),
+    AUTH_ROUTE_RATE_LIMIT_WINDOW_MS: z.coerce.number().int().positive().default(60_000),
+    AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20)
   })
   .superRefine((value, ctx) => {
     if (value.USER_AUTH_MODE === "off") {
       return;
     }
 
+    const normalizedJwtSecret = trimToUndefined(value.SUPABASE_JWT_SECRET);
+    if (normalizedJwtSecret?.startsWith("sb_secret_")) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["SUPABASE_JWT_SECRET"],
+        message:
+          "SUPABASE_JWT_SECRET expects the legacy JWT signing secret, not a Supabase secret API key (sb_secret_*). Remove SUPABASE_JWT_SECRET to use JWKS verification."
+      });
+    }
+
     const hasSupabaseUrl = Boolean(trimToUndefined(value.SUPABASE_URL));
-    const hasJwtSecret = Boolean(trimToUndefined(value.SUPABASE_JWT_SECRET));
+    const hasJwtSecret = Boolean(normalizedJwtSecret);
     const hasJwksUrl = Boolean(trimToUndefined(value.SUPABASE_JWKS_URL));
     const hasIssuer = Boolean(trimToUndefined(value.SUPABASE_JWT_ISSUER));
 
@@ -141,6 +155,7 @@ export const env = {
     "ALLOW_UNAUTHENTICATED_BYOK"
   ),
   SUPABASE_URL: supabaseUrl,
+  SUPABASE_PUBLISHABLE_KEY: trimToUndefined(parsedEnv.SUPABASE_PUBLISHABLE_KEY),
   SUPABASE_JWT_SECRET: trimToUndefined(parsedEnv.SUPABASE_JWT_SECRET),
   SUPABASE_JWT_ISSUER: supabaseJwtIssuer,
   SUPABASE_JWKS_URL: supabaseJwksUrl,

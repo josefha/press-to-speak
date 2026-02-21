@@ -85,20 +85,34 @@ Supabase can own auth + relational tables initially.
 
 ## API Endpoints (Proposed)
 
-1. `POST /v1/voice-to-text`
+1. `POST /v1/auth/signup`
+- create account through Supabase auth
+- returns normalized account profile (`profile_name`, `tier`) and session when available
+
+2. `POST /v1/auth/login`
+- sign in through Supabase auth
+- returns normalized account profile + session
+
+3. `POST /v1/auth/refresh`
+- refresh Supabase auth session token pair
+
+4. `POST /v1/auth/logout`
+- invalidate Supabase auth session
+
+5. `POST /v1/voice-to-text`
 - multipart audio upload
 - returns raw transcript + request id + timing
 
-2. `GET /v1/voice-to-text/:id`
+6. `GET /v1/voice-to-text/:id`
 - returns latest state (`raw`, `processed`, `final`)
 
-3. `POST /v1/snippets`
+7. `POST /v1/snippets`
 - create snippet mappings
 
-4. `GET /v1/snippets`
+8. `GET /v1/snippets`
 - list snippet mappings for user/team
 
-5. `POST /v1/usage/heartbeat` (optional)
+9. `POST /v1/usage/heartbeat` (optional)
 - client telemetry for UX correlation only
 
 ## Rewrite Pipeline Design
@@ -142,6 +156,7 @@ Current implementation status:
 
 - optional shared ingress key (`PROXY_SHARED_API_KEY`) for proxy callers
 - Supabase JWT verification middleware with `USER_AUTH_MODE=off|optional|required`
+- Supabase-backed auth endpoints (`/v1/auth/signup|login|refresh|logout`) with profile/tier normalization
 - optional unauthenticated BYOK path (`x-openai-api-key` + `x-elevenlabs-api-key`) with rate limiting
 - usage events include authenticated vs unauthenticated source metadata
 

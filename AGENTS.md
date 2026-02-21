@@ -49,3 +49,4 @@ Legacy aliases still work: `make run`, `make build`, `make package-app`, `make i
 9. After any large feature, run a self code review focused on security risks and apply fixes before handoff.
 10. In handoff notes, include a short security review summary (findings, fixes, residual risks).
 11. For Supabase schema changes, do not handwrite SQL migrations; generate migration files via Supabase CLI/MCP tooling and then review them.
+12. This project uses modern Supabase auth (asymmetric JWT via JWKS). Do not set `SUPABASE_JWT_SECRET` to `sb_secret_*`; leave `SUPABASE_JWT_SECRET` unset unless explicitly migrating a legacy HS256 setup.

@@ -1,10 +1,26 @@
 import Foundation
 
+public enum PressToSpeakAccountTier: String, Codable {
+    case free
+    case pro
+
+    public var label: String {
+        switch self {
+        case .free:
+            return "Free"
+        case .pro:
+            return "Pro"
+        }
+    }
+}
+
 public struct PressToSpeakAccountSession: Codable {
     public let accessToken: String
     public let refreshToken: String
     public let userID: String
     public let email: String?
+    public let profileName: String?
+    public let accountTier: PressToSpeakAccountTier?
     public let accessTokenExpiresAtEpochSeconds: Int?
 
     public init(
@@ -12,13 +28,21 @@ public struct PressToSpeakAccountSession: Codable {
         refreshToken: String,
         userID: String,
         email: String?,
+        profileName: String?,
+        accountTier: PressToSpeakAccountTier?,
         accessTokenExpiresAtEpochSeconds: Int?
     ) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.userID = userID
         self.email = email
+        self.profileName = profileName
+        self.accountTier = accountTier
         self.accessTokenExpiresAtEpochSeconds = accessTokenExpiresAtEpochSeconds
+    }
+
+    public var resolvedAccountTier: PressToSpeakAccountTier {
+        accountTier ?? .free
     }
 
     public func shouldRefresh(leewaySeconds: Int = 60) -> Bool {

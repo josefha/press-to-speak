@@ -8,7 +8,8 @@ This repository now includes the MVP end-to-end flow:
 
 - global hold-to-talk hotkey (configurable in Settings)
 - AVFoundation microphone recording
-- default `PressToSpeak Account` mode with Supabase sign-up/sign-in
+- default `PressToSpeak Account` mode with login/create-account UI
+- PressToSpeak API-backed account auth flow (`/v1/auth/signup|login|refresh|logout`)
 - advanced `Bring Your Own Keys` mode (OpenAI + ElevenLabs keys stored in Keychain)
 - proxy API mode for all transcription traffic
 - automatic paste into active app with clipboard restore
@@ -43,10 +44,14 @@ Edit `.env` and set at least:
 
 Optional:
 
-- `SUPABASE_URL` + `SUPABASE_PUBLISHABLE_KEY` (required for PressToSpeak Account mode)
+- `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH` (`false` by default; set `true` only for local UI testing)
 - `TRANSCRIPTION_PROXY_API_KEY`
 - `ELEVENLABS_MODEL_ID` (`scribe_v1` or `scribe_v2`)
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
+
+When `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=true`, the app simulates login/signup locally and sends `x-user-id` to the API.
+Use this only for local frontend iteration; keep this disabled in production.
+In mock mode, tier defaults to `Free`; use an email containing `+pro@` to simulate `Pro`.
 
 ## Proxy API Contract (MVP)
 

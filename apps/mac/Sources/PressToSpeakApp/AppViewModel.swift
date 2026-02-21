@@ -17,6 +17,11 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var isAuthInProgress = false
     @Published private(set) var isAccountAuthenticated = false
     @Published private(set) var signedInAccountLabel: String = "Not signed in"
+    @Published private(set) var accountProfileName: String = "PressToSpeak User"
+    @Published private(set) var accountProfileEmail: String = ""
+    @Published private(set) var accountTierLabel: String = PressToSpeakAccountTier.free.label
+    @Published private(set) var accountAuthFlow: AccountAuthFlow = .none
+    @Published private(set) var accountAuthError: String = ""
     @Published var showAdvancedModeOptions = false
     @Published var bringYourOwnOpenAIKeyInput: String = ""
     @Published var bringYourOwnElevenLabsKeyInput: String = ""
@@ -29,7 +34,7 @@ final class AppViewModel: ObservableObject {
     private let paster: TextPaster
     private let promptBuilder: PromptBuilding
     private let credentialVault: CredentialVault
-    private let supabaseAuthService: SupabaseAuthService
+    private let accountAuthService: any PressToSpeakAccountAuthServicing
     private let hotkeyMonitor: GlobalHotkeyMonitor
     private let hotkeyCaptureService: HotkeyCaptureService
     private var accountSession: PressToSpeakAccountSession?
@@ -49,8 +54,15 @@ final class AppViewModel: ObservableObject {
         self.paster = ClipboardPaster()
         self.promptBuilder = DefaultPromptBuilder()
         self.credentialVault = CredentialVault()
-        self.supabaseAuthService = SupabaseAuthService(configuration: configuration)
+        if configuration.useMockAccountAuth {
+            self.accountAuthService = MockPressToSpeakAccountAuthService()
+        } else {
+            self.accountAuthService = SupabaseAuthService(configuration: configuration)
+        }
         self.hotkeyCaptureService = HotkeyCaptureService()
+
+        // Keep account mode as the current product default.
+        self.settingsStore.settings.apiMode = .pressToSpeakAccount
 
         self.hotkeyMonitor = GlobalHotkeyMonitor(
             shortcut: self.settingsStore.settings.activationShortcutValue,
@@ -123,11 +135,39 @@ final class AppViewModel: ObservableObject {
     }
 
     var availableAPIModes: [APIMode] {
-        if showAdvancedModeOptions || settingsStore.settings.apiMode == .bringYourOwnKeys {
-            return APIMode.allCases
-        }
-
         return [.pressToSpeakAccount]
+    }
+
+    var isUsingMockAccountAuth: Bool {
+        configuration.useMockAccountAuth
+    }
+
+    var canTranscribe: Bool {
+        isAccountAuthenticated
+    }
+
+    var shouldShowAccountAuthForm: Bool {
+        accountAuthFlow != .none
+    }
+
+    var isCreateAccountFlow: Bool {
+        accountAuthFlow == .createAccount
+    }
+
+    var accountSubmitButtonTitle: String {
+        isCreateAccountFlow ? "Create Free Account" : "Log In"
+    }
+
+    var accountSwitchButtonTitle: String {
+        isCreateAccountFlow ? "Back to Log In" : "Create Account"
+    }
+
+    var accountProfileInitial: String {
+        let name = accountProfileName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let first = name.first else {
+            return "P"
+        }
+        return String(first).uppercased()
     }
 
     var hasStoredBringYourOwnKeys: Bool {
@@ -135,9 +175,12 @@ final class AppViewModel: ObservableObject {
             normalizedNonEmpty(bringYourOwnElevenLabsKeyInput) != nil
     }
 
-    var isSupabaseConfigured: Bool {
-        configuration.supabaseURL != nil &&
-            normalizedNonEmpty(configuration.supabasePublishableKey) != nil
+    var isAccountAuthConfigured: Bool {
+        if isUsingMockAccountAuth {
+            return true
+        }
+
+        return configuration.proxyURL != nil
     }
 
     func startCapture() {
@@ -146,6 +189,15 @@ final class AppViewModel: ObservableObject {
         }
 
         guard !isCapturingHotkey else {
+            return
+        }
+
+        if !canTranscribe {
+            status = .error
+            lastError = "Sign in with a free PressToSpeak account to transcribe."
+            if accountAuthFlow == .none {
+                accountAuthFlow = .signIn
+            }
             return
         }
 
@@ -274,27 +326,61 @@ final class AppViewModel: ObservableObject {
         historyStore.clear()
     }
 
+    func beginSignInFlow() {
+        accountAuthFlow = .signIn
+        accountAuthError = ""
+    }
+
+    func beginCreateAccountFlow() {
+        accountAuthFlow = .createAccount
+        accountAuthError = ""
+    }
+
+    func switchAccountFlow() {
+        if accountAuthFlow == .createAccount {
+            beginSignInFlow()
+        } else {
+            beginCreateAccountFlow()
+        }
+    }
+
+    func cancelAccountFlow() {
+        accountAuthFlow = .none
+        accountPasswordInput = ""
+        accountAuthError = ""
+    }
+
+    func submitCurrentAccountFlow() {
+        if accountAuthFlow == .createAccount {
+            signUpWithPressToSpeakAccount()
+            return
+        }
+
+        signInWithPressToSpeakAccount()
+    }
+
     func signInWithPressToSpeakAccount() {
         let email = accountEmailInput.trimmingCharacters(in: .whitespacesAndNewlines)
         let password = accountPasswordInput
 
         guard !email.isEmpty, !password.isEmpty else {
-            lastError = "Enter email and password."
+            accountAuthError = "Enter email and password."
             return
         }
 
         isAuthInProgress = true
-        lastError = ""
+        accountAuthError = ""
 
         Task {
             do {
-                let session = try await supabaseAuthService.signIn(email: email, password: password)
+                let session = try await accountAuthService.signIn(email: email, password: password)
                 let storedSession = makeStoredSession(from: session)
                 try credentialVault.saveAccountSession(storedSession)
                 applySignedInSession(storedSession)
                 accountPasswordInput = ""
+                accountAuthFlow = .none
             } catch {
-                lastError = error.localizedDescription
+                accountAuthError = error.localizedDescription
             }
 
             isAuthInProgress = false
@@ -306,27 +392,29 @@ final class AppViewModel: ObservableObject {
         let password = accountPasswordInput
 
         guard !email.isEmpty, !password.isEmpty else {
-            lastError = "Enter email and password."
+            accountAuthError = "Enter email and password."
             return
         }
 
         isAuthInProgress = true
-        lastError = ""
+        accountAuthError = ""
 
         Task {
             do {
-                let result = try await supabaseAuthService.signUp(email: email, password: password)
+                let result = try await accountAuthService.signUp(email: email, password: password)
                 switch result {
                 case .signedIn(let session):
                     let storedSession = makeStoredSession(from: session)
                     try credentialVault.saveAccountSession(storedSession)
                     applySignedInSession(storedSession)
+                    accountAuthFlow = .none
                 case .requiresEmailConfirmation:
-                    signedInAccountLabel = "Sign-up complete. Confirm your email, then sign in."
+                    accountAuthFlow = .signIn
+                    accountAuthError = "Account created. Check your email for confirmation, then log in."
                 }
                 accountPasswordInput = ""
             } catch {
-                lastError = error.localizedDescription
+                accountAuthError = error.localizedDescription
             }
 
             isAuthInProgress = false
@@ -335,19 +423,19 @@ final class AppViewModel: ObservableObject {
 
     func signOutFromPressToSpeakAccount() {
         let accessToken = accountSession?.accessToken
-        accountSession = nil
-        isAccountAuthenticated = false
-        signedInAccountLabel = "Not signed in"
+        resetSignedInAccountState()
+        accountAuthError = ""
+        accountAuthFlow = .none
 
         do {
             try credentialVault.clearAccountSession()
         } catch {
-            lastError = error.localizedDescription
+            accountAuthError = error.localizedDescription
         }
 
         if let accessToken {
             Task {
-                await supabaseAuthService.signOut(accessToken: accessToken)
+                await accountAuthService.signOut(accessToken: accessToken)
             }
         }
     }
@@ -393,6 +481,15 @@ final class AppViewModel: ObservableObject {
         case .pressToSpeakAccount:
             let session = try await resolveActiveAccountSession()
 
+            if isUsingMockAccountAuth {
+                return ProxyTranscriptionProvider(
+                    configuration: configuration,
+                    additionalHeaders: [
+                        "x-user-id": session.userID
+                    ]
+                )
+            }
+
             return ProxyTranscriptionProvider(
                 configuration: configuration,
                 additionalHeaders: [
@@ -427,7 +524,7 @@ final class AppViewModel: ObservableObject {
         }
 
         do {
-            let refreshed = try await supabaseAuthService.refreshSession(refreshToken: currentSession.refreshToken)
+            let refreshed = try await accountAuthService.refreshSession(refreshToken: currentSession.refreshToken)
             let storedSession = makeStoredSession(from: refreshed)
             try credentialVault.saveAccountSession(storedSession)
             applySignedInSession(storedSession)
@@ -437,8 +534,7 @@ final class AppViewModel: ObservableObject {
                 return currentSession
             }
 
-            accountSession = nil
-            isAccountAuthenticated = false
+            resetSignedInAccountState()
             signedInAccountLabel = "Session expired. Sign in again."
             try? credentialVault.clearAccountSession()
             throw error
@@ -455,15 +551,18 @@ final class AppViewModel: ObservableObject {
             bringYourOwnOpenAIKeyInput = byok.openAIAPIKey ?? ""
             bringYourOwnElevenLabsKeyInput = byok.elevenLabsAPIKey ?? ""
         } catch {
-            lastError = error.localizedDescription
+            accountAuthError = error.localizedDescription
         }
     }
 
     private func applySignedInSession(_ session: PressToSpeakAccountSession) {
         accountSession = session
         isAccountAuthenticated = true
-        let label = session.email ?? session.userID
-        signedInAccountLabel = "Signed in as \(label)"
+        accountProfileName = resolveProfileName(session: session)
+        accountProfileEmail = session.email ?? ""
+        accountTierLabel = session.resolvedAccountTier.label
+        signedInAccountLabel = "Signed in as \(accountProfileName)"
+        accountAuthError = ""
     }
 
     private func makeStoredSession(from session: SupabaseAuthSession) -> PressToSpeakAccountSession {
@@ -472,8 +571,56 @@ final class AppViewModel: ObservableObject {
             refreshToken: session.refreshToken,
             userID: session.userID,
             email: session.email,
+            profileName: session.profileName,
+            accountTier: session.accountTier,
             accessTokenExpiresAtEpochSeconds: session.accessTokenExpiresAtEpochSeconds
         )
+    }
+
+    private func resolveProfileName(session: PressToSpeakAccountSession) -> String {
+        if let explicitName = normalizedNonEmpty(session.profileName) {
+            return displayName(from: explicitName)
+        }
+
+        if let email = normalizedNonEmpty(session.email) {
+            let localPart = email.split(separator: "@").first.map(String.init) ?? email
+            if let derived = normalizedNonEmpty(localPart.replacingOccurrences(of: ".", with: " ")) {
+                return displayName(from: derived)
+            }
+        }
+
+        if let userID = normalizedNonEmpty(session.userID) {
+            return displayName(from: userID)
+        }
+
+        return "PressToSpeak User"
+    }
+
+    private func resetSignedInAccountState() {
+        accountSession = nil
+        isAccountAuthenticated = false
+        signedInAccountLabel = "Not signed in"
+        accountProfileName = "PressToSpeak User"
+        accountProfileEmail = ""
+        accountTierLabel = PressToSpeakAccountTier.free.label
+    }
+
+    private func displayName(from rawValue: String) -> String {
+        let normalized = rawValue
+            .replacingOccurrences(of: ".", with: " ")
+            .replacingOccurrences(of: "_", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !normalized.isEmpty else {
+            return "PressToSpeak User"
+        }
+
+        return normalized
+            .split(separator: " ")
+            .map { segment in
+                segment.prefix(1).uppercased() + segment.dropFirst().lowercased()
+            }
+            .joined(separator: " ")
     }
 
     private func normalizedNonEmpty(_ value: String?) -> String? {
@@ -501,4 +648,10 @@ private enum AppConfigurationError: LocalizedError {
             return "TRANSCRIPTION_PROXY_URL is required."
         }
     }
+}
+
+enum AccountAuthFlow {
+    case none
+    case signIn
+    case createAccount
 }

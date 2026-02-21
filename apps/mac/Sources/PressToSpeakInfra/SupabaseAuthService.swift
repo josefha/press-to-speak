@@ -10,15 +10,15 @@ public enum SupabaseAuthError: LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .missingConfiguration:
-            return "Supabase configuration is missing. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY."
+            return "Account auth configuration is missing. Set TRANSCRIPTION_PROXY_URL."
         case .insecureConfiguration:
-            return "Supabase URL must use HTTPS in non-local environments."
+            return "Proxy URL must use HTTPS in non-local environments."
         case .invalidCredentials:
             return "Email and password are required."
         case .upstreamFailure(let statusCode, let message):
-            return "Supabase auth failed (\(statusCode)): \(message)"
+            return "Account auth failed (\(statusCode)): \(message)"
         case .invalidResponse:
-            return "Supabase auth response was invalid."
+            return "Account auth response was invalid."
         }
     }
 }
@@ -28,6 +28,8 @@ public struct SupabaseAuthSession {
     public let refreshToken: String
     public let userID: String
     public let email: String?
+    public let profileName: String?
+    public let accountTier: PressToSpeakAccountTier?
     public let accessTokenExpiresAtEpochSeconds: Int?
 
     public init(
@@ -35,12 +37,16 @@ public struct SupabaseAuthSession {
         refreshToken: String,
         userID: String,
         email: String?,
+        profileName: String?,
+        accountTier: PressToSpeakAccountTier?,
         accessTokenExpiresAtEpochSeconds: Int?
     ) {
         self.accessToken = accessToken
         self.refreshToken = refreshToken
         self.userID = userID
         self.email = email
+        self.profileName = profileName
+        self.accountTier = accountTier
         self.accessTokenExpiresAtEpochSeconds = accessTokenExpiresAtEpochSeconds
     }
 }
@@ -50,18 +56,14 @@ public enum SupabaseSignUpResult {
     case requiresEmailConfirmation
 }
 
-private enum SupabaseTokenGrantType: String {
-    case password
-    case refreshToken = "refresh_token"
+public protocol PressToSpeakAccountAuthServicing {
+    func signUp(email: String, password: String) async throws -> SupabaseSignUpResult
+    func signIn(email: String, password: String) async throws -> SupabaseAuthSession
+    func refreshSession(refreshToken: String) async throws -> SupabaseAuthSession
+    func signOut(accessToken: String) async
 }
 
-private extension SupabaseTokenGrantType {
-    var queryItem: URLQueryItem {
-        URLQueryItem(name: "grant_type", value: rawValue)
-    }
-}
-
-public final class SupabaseAuthService {
+public final class SupabaseAuthService: PressToSpeakAccountAuthServicing {
     private let configuration: AppConfiguration
     private let session: URLSession
 
@@ -78,7 +80,7 @@ public final class SupabaseAuthService {
 
         let payload = try await request(
             method: "POST",
-            path: "/auth/v1/signup",
+            path: "auth/signup",
             body: [
                 "email": normalizedEmail,
                 "password": password
@@ -90,7 +92,11 @@ public final class SupabaseAuthService {
             return .signedIn(session)
         }
 
-        return .requiresEmailConfirmation
+        if authPayload.requiresEmailConfirmation == true {
+            return .requiresEmailConfirmation
+        }
+
+        throw SupabaseAuthError.invalidResponse
     }
 
     public func signIn(email: String, password: String) async throws -> SupabaseAuthSession {
@@ -101,8 +107,7 @@ public final class SupabaseAuthService {
 
         let payload = try await request(
             method: "POST",
-            path: "/auth/v1/token",
-            queryItems: [SupabaseTokenGrantType.password.queryItem],
+            path: "auth/login",
             body: [
                 "email": normalizedEmail,
                 "password": password
@@ -125,8 +130,7 @@ public final class SupabaseAuthService {
 
         let payload = try await request(
             method: "POST",
-            path: "/auth/v1/token",
-            queryItems: [SupabaseTokenGrantType.refreshToken.queryItem],
+            path: "auth/refresh",
             body: [
                 "refresh_token": normalizedRefreshToken
             ]
@@ -146,49 +150,30 @@ public final class SupabaseAuthService {
             return
         }
 
-        _ = try? await request(method: "POST", path: "/auth/v1/logout", bearerToken: token)
+        _ = try? await request(method: "POST", path: "auth/logout", bearerToken: token)
     }
 
     private func request(
         method: String,
         path: String,
-        queryItems: [URLQueryItem] = [],
         body: [String: Any]? = nil,
         bearerToken: String? = nil
     ) async throws -> Data {
-        guard
-            let baseURL = configuration.supabaseURL,
-            let clientKey = normalize(configuration.supabasePublishableKey)
-        else {
-            throw SupabaseAuthError.missingConfiguration
-        }
-
-        guard var components = URLComponents(
-            url: baseURL.appendingPathComponent(path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))),
-            resolvingAgainstBaseURL: false
-        ) else {
-            throw SupabaseAuthError.missingConfiguration
-        }
-
-        if !queryItems.isEmpty {
-            components.queryItems = queryItems
-        }
-
-        guard let url = components.url else {
-            throw SupabaseAuthError.missingConfiguration
-        }
-
-        if !isSecureSupabaseURL(url) {
-            throw SupabaseAuthError.insecureConfiguration
-        }
+        let url = try makeProxyAuthURL(path: path)
 
         var request = URLRequest(url: url)
         request.httpMethod = method
         request.timeoutInterval = configuration.requestTimeoutSeconds
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.setValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue(clientKey, forHTTPHeaderField: "apikey")
-        request.setValue("Bearer \(bearerToken ?? clientKey)", forHTTPHeaderField: "Authorization")
+
+        if let proxyKey = normalize(configuration.proxyAPIKey) {
+            request.setValue(proxyKey, forHTTPHeaderField: "x-api-key")
+        }
+
+        if let bearerToken = normalize(bearerToken) {
+            request.setValue("Bearer \(bearerToken)", forHTTPHeaderField: "Authorization")
+        }
 
         if let body {
             request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -209,54 +194,104 @@ public final class SupabaseAuthService {
         return data
     }
 
+    private func makeProxyAuthURL(path: String) throws -> URL {
+        guard let proxyURL = configuration.proxyURL else {
+            throw SupabaseAuthError.missingConfiguration
+        }
+
+        if !isSecureProxyURL(proxyURL) {
+            throw SupabaseAuthError.insecureConfiguration
+        }
+
+        guard var components = URLComponents(url: proxyURL, resolvingAgainstBaseURL: false) else {
+            throw SupabaseAuthError.missingConfiguration
+        }
+
+        components.query = nil
+        components.fragment = nil
+
+        var basePath = components.path
+        while basePath.count > 1, basePath.hasSuffix("/") {
+            basePath.removeLast()
+        }
+
+        if basePath.hasSuffix("/voice-to-text") {
+            basePath.removeLast("/voice-to-text".count)
+        }
+
+        if basePath.isEmpty {
+            basePath = "/"
+        }
+
+        let endpointPath = normalizePath(path)
+        if endpointPath.isEmpty {
+            throw SupabaseAuthError.missingConfiguration
+        }
+
+        if basePath == "/" {
+            components.path = "/\(endpointPath)"
+        } else {
+            components.path = "\(basePath)/\(endpointPath)"
+        }
+
+        guard let endpointURL = components.url else {
+            throw SupabaseAuthError.missingConfiguration
+        }
+
+        return endpointURL
+    }
+
     private func extractErrorMessage(from data: Data) -> String {
         guard let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             if let text = String(data: data, encoding: .utf8), !text.isEmpty {
                 return text
             }
-            return "Unknown Supabase auth error"
+            return "Unknown account auth error"
         }
 
-        let keys = ["msg", "message", "error_description", "error"]
+        if let errorObject = object["error"] as? [String: Any] {
+            let nestedKeys = ["message", "detail", "reason"]
+            for key in nestedKeys {
+                if let value = errorObject[key] as? String, !value.isEmpty {
+                    return value
+                }
+            }
+        }
+
+        let keys = ["message", "detail", "error", "msg"]
         for key in keys {
             if let value = object[key] as? String, !value.isEmpty {
                 return value
             }
         }
 
-        return "Unknown Supabase auth error"
+        return "Unknown account auth error"
     }
 
-    private func decodeAuthPayload(_ payload: Data) throws -> SupabaseAuthResponse {
+    private func decodeAuthPayload(_ payload: Data) throws -> ProxyAuthResponse {
         let decoder = JSONDecoder()
-        return try decoder.decode(SupabaseAuthResponse.self, from: payload)
+        return try decoder.decode(ProxyAuthResponse.self, from: payload)
     }
 
-    private func makeSession(from payload: SupabaseAuthResponse) -> SupabaseAuthSession? {
+    private func makeSession(from payload: ProxyAuthResponse) -> SupabaseAuthSession? {
         guard
-            let accessToken = normalize(payload.accessToken),
-            let refreshToken = normalize(payload.refreshToken),
-            let userID = normalize(payload.user?.id)
+            let account = payload.account,
+            let tokenSession = payload.session,
+            let accessToken = normalize(tokenSession.accessToken),
+            let refreshToken = normalize(tokenSession.refreshToken),
+            let userID = normalize(account.userID)
         else {
             return nil
-        }
-
-        let expiresAtEpochSeconds: Int?
-        if let explicitExpiry = payload.expiresAt, explicitExpiry > 0 {
-            expiresAtEpochSeconds = explicitExpiry
-        } else if let expiresIn = payload.expiresIn, expiresIn > 0 {
-            let nowEpochSeconds = Int(Date().timeIntervalSince1970)
-            expiresAtEpochSeconds = nowEpochSeconds + expiresIn
-        } else {
-            expiresAtEpochSeconds = nil
         }
 
         return SupabaseAuthSession(
             accessToken: accessToken,
             refreshToken: refreshToken,
             userID: userID,
-            email: normalize(payload.user?.email),
-            accessTokenExpiresAtEpochSeconds: expiresAtEpochSeconds
+            email: normalize(account.email),
+            profileName: normalize(account.profileName),
+            accountTier: normalizeTier(account.tier),
+            accessTokenExpiresAtEpochSeconds: tokenSession.expiresAt
         )
     }
 
@@ -264,11 +299,31 @@ public final class SupabaseAuthService {
         guard let value else {
             return nil
         }
+
         let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return normalized.isEmpty ? nil : normalized
     }
 
-    private func isSecureSupabaseURL(_ url: URL) -> Bool {
+    private func normalizePath(_ path: String) -> String {
+        path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    }
+
+    private func normalizeTier(_ value: String?) -> PressToSpeakAccountTier? {
+        guard let value else {
+            return nil
+        }
+
+        switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "pro":
+            return .pro
+        case "free":
+            return .free
+        default:
+            return nil
+        }
+    }
+
+    private func isSecureProxyURL(_ url: URL) -> Bool {
         guard let scheme = url.scheme?.lowercased() else {
             return false
         }
@@ -286,23 +341,40 @@ public final class SupabaseAuthService {
     }
 }
 
-private struct SupabaseAuthResponse: Decodable {
+private struct ProxyAuthResponse: Decodable {
+    let account: ProxyAuthAccount?
+    let session: ProxyAuthSessionPayload?
+    let requiresEmailConfirmation: Bool?
+
+    enum CodingKeys: String, CodingKey {
+        case account
+        case session
+        case requiresEmailConfirmation = "requires_email_confirmation"
+    }
+}
+
+private struct ProxyAuthAccount: Decodable {
+    let userID: String?
+    let email: String?
+    let profileName: String?
+    let tier: String?
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case email
+        case profileName = "profile_name"
+        case tier
+    }
+}
+
+private struct ProxyAuthSessionPayload: Decodable {
     let accessToken: String?
     let refreshToken: String?
-    let expiresIn: Int?
     let expiresAt: Int?
-    let user: SupabaseUser?
 
     enum CodingKeys: String, CodingKey {
         case accessToken = "access_token"
         case refreshToken = "refresh_token"
-        case expiresIn = "expires_in"
         case expiresAt = "expires_at"
-        case user
     }
-}
-
-private struct SupabaseUser: Decodable {
-    let id: String?
-    let email: String?
 }

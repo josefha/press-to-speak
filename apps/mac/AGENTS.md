@@ -127,10 +127,17 @@ Project env file:
 Important keys:
 - `TRANSCRIPTION_PROXY_URL`
 - `TRANSCRIPTION_PROXY_API_KEY`
-- `SUPABASE_URL`
-- `SUPABASE_PUBLISHABLE_KEY`
+- `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH` (`false` in normal mode; `true` only for local mocked login/signup flow)
 - `ELEVENLABS_MODEL_ID`
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
+
+Mock mode behavior:
+- when `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=true`, account auth is simulated in-app and proxy requests send `x-user-id`.
+- use this only for frontend iteration and keep it disabled in production.
+
+Supabase auth mode note:
+- this product uses modern Supabase JWT verification via JWKS (asymmetric signing).
+- do not set API `SUPABASE_JWT_SECRET` to `sb_secret_*`; leave it unset unless explicitly targeting legacy HS256 JWT setups.
 
 Packaging behavior:
 - `.env` is copied into app bundle as `Contents/Resources/app.env`.
