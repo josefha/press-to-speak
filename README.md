@@ -1,11 +1,41 @@
 # PressToSpeak Monorepo
 
-This repository now contains:
+PressToSpeak.com is an open-source voice-to-text app for macOS.
+
+Press a shortcut, speak naturally, and let AI turn rough speech into clean, polished text that can be pasted into any app.
+
+Download PressToSpeak for Mac at [https://www.presstospeak.com/](https://www.presstospeak.com/).
+
+## Use PressToSpeak Now
+
+If you just want to use PressToSpeak:
+
+1. Download the macOS app from [https://www.presstospeak.com/](https://www.presstospeak.com/).
+2. Open the app and create an account (or log in) with your PressToSpeak.com account.
+3. Start dictating with the default PressToSpeak account mode.
+
+Bring Your Own Keys (BYOK) is also supported for advanced users.
+
+If you want to build and run everything yourself, developer instructions are below.
+
+## What Is In This Repository
+
+This monorepo contains:
 
 - `apps/mac`: the existing PressToSpeak macOS menu bar app (Swift/SwiftUI).
 - `apps/api`: TypeScript Express API middle layer (scaffolded).
 
-## Why This Layout
+## Product Concept
+
+PressToSpeak focuses on a hold-to-talk workflow:
+
+1. Hold your shortcut to record.
+2. Release to transcribe.
+3. Paste the result into the active app.
+
+The API layer adds account auth, usage control, and post-processing so the mac app can stay fast and UX-focused.
+
+## Why This Monorepo Layout
 
 You want production control over:
 
@@ -57,3 +87,7 @@ apps/
 - Detailed plan: `apps/api/docs/architecture.md`
 - LLM provider decision: `apps/api/docs/llm-provider-decision.md`
 - Implementation roadmap: `apps/api/docs/roadmap.md`
+
+## License
+
+This repository is licensed under the MIT License. See `LICENSE`.

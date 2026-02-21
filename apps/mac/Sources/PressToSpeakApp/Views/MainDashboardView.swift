@@ -166,7 +166,7 @@ struct MainDashboardView: View {
     private var accountAccessSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text("PressToSpeak Account")
+                Text("Account")
                     .font(AppTypography.brandHeading(size: 22))
                 Spacer()
 
