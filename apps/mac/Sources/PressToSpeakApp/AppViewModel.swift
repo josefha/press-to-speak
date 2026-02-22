@@ -56,11 +56,7 @@ final class AppViewModel: ObservableObject {
         self.paster = ClipboardPaster()
         self.promptBuilder = DefaultPromptBuilder()
         self.credentialVault = CredentialVault()
-        if configuration.useMockAccountAuth {
-            self.accountAuthService = MockPressToSpeakAccountAuthService()
-        } else {
-            self.accountAuthService = SupabaseAuthService(configuration: configuration)
-        }
+        self.accountAuthService = SupabaseAuthService(configuration: configuration)
         self.hotkeyCaptureService = HotkeyCaptureService()
 
         // Keep account mode as the current product default.
@@ -156,10 +152,6 @@ final class AppViewModel: ObservableObject {
         return [.pressToSpeakAccount]
     }
 
-    var isUsingMockAccountAuth: Bool {
-        configuration.useMockAccountAuth
-    }
-
     var canTranscribe: Bool {
         isAccountAuthenticated
     }
@@ -170,14 +162,6 @@ final class AppViewModel: ObservableObject {
 
     var isCreateAccountFlow: Bool {
         accountAuthFlow == .createAccount
-    }
-
-    var accountSubmitButtonTitle: String {
-        isCreateAccountFlow ? "Create Free Account" : "Log In"
-    }
-
-    var accountSwitchButtonTitle: String {
-        isCreateAccountFlow ? "Back to Log In" : "Create Account"
     }
 
     var accountProfileInitial: String {
@@ -194,10 +178,6 @@ final class AppViewModel: ObservableObject {
     }
 
     var isAccountAuthConfigured: Bool {
-        if isUsingMockAccountAuth {
-            return true
-        }
-
         return configuration.proxyURL != nil
     }
 
@@ -387,14 +367,6 @@ final class AppViewModel: ObservableObject {
         accountAuthError = ""
     }
 
-    func switchAccountFlow() {
-        if accountAuthFlow == .createAccount {
-            beginSignInFlow()
-        } else {
-            beginCreateAccountFlow()
-        }
-    }
-
     func cancelAccountFlow() {
         accountAuthFlow = .none
         accountPasswordInput = ""
@@ -532,15 +504,6 @@ final class AppViewModel: ObservableObject {
         switch mode {
         case .pressToSpeakAccount:
             let session = try await resolveActiveAccountSession()
-
-            if isUsingMockAccountAuth {
-                return ProxyTranscriptionProvider(
-                    configuration: configuration,
-                    additionalHeaders: [
-                        "x-user-id": session.userID
-                    ]
-                )
-            }
 
             return ProxyTranscriptionProvider(
                 configuration: configuration,

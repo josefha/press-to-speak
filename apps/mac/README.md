@@ -41,23 +41,20 @@ cp .env.example .env
 For website production builds, create a dedicated release config:
 
 ```bash
-cp .env.production.example .env.production
+touch .env.production
 ```
 
 Edit `.env` and set at least:
 
 - `TRANSCRIPTION_PROXY_URL`
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
 
 Optional:
 
-- `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH` (`false` by default; set `true` only for local UI testing)
 - `TRANSCRIPTION_PROXY_API_KEY`
 - `ELEVENLABS_MODEL_ID` (`scribe_v1` or `scribe_v2`)
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
-
-When `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=true`, the app simulates login/signup locally and sends `x-user-id` to the API.
-Use this only for local frontend iteration; keep this disabled in production.
-In mock mode, tier defaults to `Free`; use an email containing `+pro@` to simulate `Pro`.
 
 ## Proxy API Contract (MVP)
 
@@ -175,7 +172,7 @@ Outputs:
 
 1. Configure production env values in `.env.production`:
 ```bash
-cp .env.production.example .env.production
+touch .env.production
 ```
 
 2. Export production artifacts:
@@ -191,7 +188,6 @@ PRODUCTION_PROXY_URL="https://api.your-domain.com/v1/voice-to-text" make product
 
 Production export behavior:
 - bundles `.env.production` into the app as `Contents/Resources/app.env`
-- forces `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=false`
 - avoids shipping local development `.env` values by default
 - produces `dist/release/*.zip` and `dist/release/*.dmg`
 

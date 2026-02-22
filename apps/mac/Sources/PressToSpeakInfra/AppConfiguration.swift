@@ -8,7 +8,6 @@ public struct AppConfiguration {
     public let proxyAPIKey: String?
     public let supabaseURL: URL?
     public let supabasePublishableKey: String?
-    public let useMockAccountAuth: Bool
     public let requestTimeoutSeconds: TimeInterval
 
     public init(processInfo: ProcessInfo = .processInfo, fileManager: FileManager = .default) {
@@ -43,10 +42,6 @@ public struct AppConfiguration {
         }
 
         self.supabasePublishableKey = AppConfiguration.normalized(env["SUPABASE_PUBLISHABLE_KEY"])
-        self.useMockAccountAuth = AppConfiguration.parseBoolean(
-            env["PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH"],
-            fallback: false
-        )
 
         if let timeoutRaw = env["TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS"],
            let timeout = TimeInterval(timeoutRaw),
@@ -74,18 +69,4 @@ public struct AppConfiguration {
         return trimmed.isEmpty ? nil : trimmed
     }
 
-    private static func parseBoolean(_ value: String?, fallback: Bool) -> Bool {
-        guard let value else {
-            return fallback
-        }
-
-        switch value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-        case "1", "true", "yes", "on":
-            return true
-        case "0", "false", "no", "off":
-            return false
-        default:
-            return fallback
-        }
-    }
 }

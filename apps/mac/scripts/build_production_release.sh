@@ -29,9 +29,6 @@ if [[ -n "${PRODUCTION_PROXY_URL}" ]]; then
   upsert_env_value "TRANSCRIPTION_PROXY_URL" "${PRODUCTION_PROXY_URL}"
 fi
 
-# Production export always disables mock auth.
-upsert_env_value "PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH" "false"
-
 if ! grep -Eq '^[[:space:]]*TRANSCRIPTION_PROXY_URL[[:space:]]*=[[:space:]]*[^[:space:]#]+' "${TMP_ENV_FILE}"; then
   echo "TRANSCRIPTION_PROXY_URL is required for production export." >&2
   echo "Set it in ${PRODUCTION_ENV_FILE} or pass PRODUCTION_PROXY_URL=..." >&2

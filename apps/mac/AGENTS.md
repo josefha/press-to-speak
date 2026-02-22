@@ -133,13 +133,10 @@ Project env files:
 Important keys:
 - `TRANSCRIPTION_PROXY_URL`
 - `TRANSCRIPTION_PROXY_API_KEY`
-- `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH` (`false` in normal mode; `true` only for local mocked login/signup flow)
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
 - `ELEVENLABS_MODEL_ID`
 - `TRANSCRIPTION_REQUEST_TIMEOUT_SECONDS`
-
-Mock mode behavior:
-- when `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=true`, account auth is simulated in-app and proxy requests send `x-user-id`.
-- use this only for frontend iteration and keep it disabled in production.
 
 Supabase auth mode note:
 - this product uses modern Supabase JWT verification via JWKS (asymmetric signing).
@@ -147,7 +144,6 @@ Supabase auth mode note:
 
 Packaging behavior:
 - packaging script uses `APP_ENV_FILE` (defaults to `.env`) and copies it into app bundle as `Contents/Resources/app.env`.
-- `make production-export` uses `.env.production` and forces `PRESS_TO_SPEAK_MOCK_ACCOUNT_AUTH=false`.
 - SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
 - App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg` (fallback `logo-dark.png`).
 - `AppConfiguration` loads bundled env + working directory env + process env.

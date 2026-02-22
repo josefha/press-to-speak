@@ -169,12 +169,6 @@ struct MainDashboardView: View {
                 Text("Account")
                     .font(AppTypography.brandHeading(size: 22))
                 Spacer()
-
-                if viewModel.isUsingMockAccountAuth {
-                    Label("Mock Mode", systemImage: "wrench.and.screwdriver.fill")
-                        .font(AppTypography.bodySemibold(size: 12))
-                        .foregroundStyle(AppPalette.warning)
-                }
             }
 
             if viewModel.isAccountAuthenticated {
