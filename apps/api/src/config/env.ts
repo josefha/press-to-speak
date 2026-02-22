@@ -1,6 +1,7 @@
 import path from "node:path";
 import dotenv from "dotenv";
 import { z } from "zod";
+import { compareDottedVersions, isDottedNumericVersion } from "../lib/version";
 
 const envPath = process.env.API_ENV_FILE
   ? path.resolve(process.cwd(), process.env.API_ENV_FILE)
@@ -35,6 +36,26 @@ function trimToUndefined(value: string | undefined): string | undefined {
   return normalized.length > 0 ? normalized : undefined;
 }
 
+function isSecureHttpUrl(value: string): boolean {
+  try {
+    const parsed = new URL(value);
+    const scheme = parsed.protocol.toLowerCase();
+
+    if (scheme === "https:") {
+      return true;
+    }
+
+    if (scheme === "http:") {
+      const host = parsed.hostname.toLowerCase();
+      return host === "localhost" || host === "127.0.0.1" || host === "::1";
+    }
+
+    return false;
+  } catch {
+    return false;
+  }
+}
+
 const optionalStringEnv = z.preprocess((value) => {
   if (typeof value !== "string") {
     return value;
@@ -52,6 +73,23 @@ const optionalUrlEnv = z.preprocess((value) => {
   const normalized = value.trim();
   return normalized.length > 0 ? normalized : undefined;
 }, z.string().url().optional());
+
+const optionalSecureHttpUrlEnv = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}, z.string().url().refine((value) => isSecureHttpUrl(value), "must be an https URL (or localhost http URL)").optional());
+
+const versionStringEnv = z.preprocess((value) => {
+  if (typeof value !== "string") {
+    return value;
+  }
+
+  return value.trim();
+}, z.string().max(32).refine((value) => isDottedNumericVersion(value), "must use dotted numeric format (for example 1.2.3)"));
 
 const envSchema = z
   .object({
@@ -73,6 +111,10 @@ const envSchema = z
     OPENAI_API_BASE_URL: z.string().url().default("https://api.openai.com/v1"),
     OPENAI_MODEL: z.string().default("gpt-5-mini"),
     OPENAI_REWRITE_TIMEOUT_MS: z.coerce.number().int().positive().default(2000),
+    MAC_APP_LATEST_VERSION: versionStringEnv.default("0.1.0"),
+    MAC_APP_MINIMUM_SUPPORTED_VERSION: versionStringEnv.optional(),
+    MAC_APP_DOWNLOAD_URL: optionalSecureHttpUrlEnv.default("https://www.presstospeak.com/"),
+    MAC_APP_RELEASE_NOTES_URL: optionalSecureHttpUrlEnv.default("https://www.presstospeak.com/"),
 
     PROXY_SHARED_API_KEY: optionalStringEnv,
     USER_AUTH_MODE: z.enum(["off", "optional", "required"]).default("required"),
@@ -92,6 +134,17 @@ const envSchema = z
     AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS: z.coerce.number().int().positive().default(20)
   })
   .superRefine((value, ctx) => {
+    if (value.MAC_APP_MINIMUM_SUPPORTED_VERSION) {
+      const comparison = compareDottedVersions(value.MAC_APP_MINIMUM_SUPPORTED_VERSION, value.MAC_APP_LATEST_VERSION);
+      if (comparison > 0) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["MAC_APP_MINIMUM_SUPPORTED_VERSION"],
+          message: "MAC_APP_MINIMUM_SUPPORTED_VERSION cannot be greater than MAC_APP_LATEST_VERSION"
+        });
+      }
+    }
+
     if (value.USER_AUTH_MODE === "off") {
       return;
     }
@@ -145,9 +198,16 @@ const supabaseJwtIssuer =
 const supabaseJwksUrl =
   trimToUndefined(parsedEnv.SUPABASE_JWKS_URL) ??
   (supabaseUrl ? `${supabaseUrl}/auth/v1/.well-known/jwks.json` : undefined);
+const macAppLatestVersion = parsedEnv.MAC_APP_LATEST_VERSION.trim();
+const macAppMinimumSupportedVersion =
+  trimToUndefined(parsedEnv.MAC_APP_MINIMUM_SUPPORTED_VERSION) ?? macAppLatestVersion;
 
 export const env = {
   ...parsedEnv,
+  MAC_APP_LATEST_VERSION: macAppLatestVersion,
+  MAC_APP_MINIMUM_SUPPORTED_VERSION: macAppMinimumSupportedVersion,
+  MAC_APP_DOWNLOAD_URL: trimToUndefined(parsedEnv.MAC_APP_DOWNLOAD_URL),
+  MAC_APP_RELEASE_NOTES_URL: trimToUndefined(parsedEnv.MAC_APP_RELEASE_NOTES_URL),
   PROXY_SHARED_API_KEY: trimToUndefined(parsedEnv.PROXY_SHARED_API_KEY),
   ALLOW_UNAUTHENTICATED_BYOK: parseEnvBoolean(
     parsedEnv.ALLOW_UNAUTHENTICATED_BYOK,

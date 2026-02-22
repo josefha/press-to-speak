@@ -25,6 +25,9 @@ final class AppViewModel: ObservableObject {
     @Published var showAdvancedModeOptions = false
     @Published var bringYourOwnOpenAIKeyInput: String = ""
     @Published var bringYourOwnElevenLabsKeyInput: String = ""
+    @Published private(set) var isCheckingForUpdates = false
+    @Published private(set) var updateCheckError: String = ""
+    @Published private(set) var updateStatus: AppUpdateStatus?
 
     var settingsStore: SettingsStore
     var historyStore: TranscriptionHistoryStore
@@ -35,11 +38,13 @@ final class AppViewModel: ObservableObject {
     private let promptBuilder: PromptBuilding
     private let credentialVault: CredentialVault
     private let accountAuthService: any PressToSpeakAccountAuthServicing
+    private let appUpdateService: any AppUpdateChecking
     private let hotkeyMonitor: GlobalHotkeyMonitor
     private let hotkeyCaptureService: HotkeyCaptureService
     private var accountSession: PressToSpeakAccountSession?
     private var accountStateRefreshTask: Task<Void, Never>?
     private var accessibilityStateRefreshTask: Task<Void, Never>?
+    private var lastUpdateCheckAt: Date?
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -57,6 +62,7 @@ final class AppViewModel: ObservableObject {
         self.promptBuilder = DefaultPromptBuilder()
         self.credentialVault = CredentialVault()
         self.accountAuthService = SupabaseAuthService(configuration: configuration)
+        self.appUpdateService = AppUpdateService(configuration: configuration)
         self.hotkeyCaptureService = HotkeyCaptureService()
 
         // Keep account mode as the current product default.
@@ -181,6 +187,38 @@ final class AppViewModel: ObservableObject {
         return configuration.proxyURL != nil
     }
 
+    var currentAppVersionLabel: String {
+        let shortVersion = normalizedNonEmpty(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+            ?? "0.0.0"
+        let buildNumber = normalizedNonEmpty(Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String)
+
+        if let buildNumber {
+            return "\(shortVersion) (\(buildNumber))"
+        }
+
+        return shortVersion
+    }
+
+    var isUpdateAvailable: Bool {
+        updateStatus?.updateAvailable ?? false
+    }
+
+    var isUpdateRequired: Bool {
+        updateStatus?.updateRequired ?? false
+    }
+
+    var latestVersionLabel: String {
+        updateStatus?.latestVersion ?? ""
+    }
+
+    var canOpenUpdateDownload: Bool {
+        updateStatus?.downloadURL != nil
+    }
+
+    var canOpenUpdateReleaseNotes: Bool {
+        updateStatus?.releaseNotesURL != nil
+    }
+
     func startCapture() {
         guard status == .idle else {
             return
@@ -299,6 +337,7 @@ final class AppViewModel: ObservableObject {
 
     func refreshUIStateOnOpen() {
         refreshAccessibilityPermission()
+        checkForUpdatesIfNeeded()
 
         accessibilityStateRefreshTask?.cancel()
         accessibilityStateRefreshTask = Task { [weak self] in
@@ -327,6 +366,28 @@ final class AppViewModel: ObservableObject {
 
             await self.refreshAccountStateOnOpen()
         }
+    }
+
+    func checkForUpdatesManually() {
+        performUpdateCheck(force: true)
+    }
+
+    func openUpdateDownloadPage() {
+        guard let url = updateStatus?.downloadURL else {
+            updateCheckError = "Download link is not configured yet."
+            return
+        }
+
+        NSWorkspace.shared.open(url)
+    }
+
+    func openUpdateReleaseNotes() {
+        guard let url = updateStatus?.releaseNotesURL else {
+            updateCheckError = "Release notes link is not configured yet."
+            return
+        }
+
+        NSWorkspace.shared.open(url)
     }
 
     func resetError() {
@@ -574,6 +635,61 @@ final class AppViewModel: ObservableObject {
         }
     }
 
+    private func checkForUpdatesIfNeeded() {
+        performUpdateCheck(force: false)
+    }
+
+    private func performUpdateCheck(force: Bool) {
+        guard !isCheckingForUpdates else {
+            return
+        }
+
+        if !force, let lastUpdateCheckAt, Date().timeIntervalSince(lastUpdateCheckAt) < 6 * 60 * 60 {
+            return
+        }
+
+        isCheckingForUpdates = true
+        if force {
+            updateCheckError = ""
+        }
+
+        let currentVersion = normalizedNonEmpty(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String)
+
+        Task { [weak self] in
+            guard let self else {
+                return
+            }
+
+            defer {
+                self.isCheckingForUpdates = false
+                self.lastUpdateCheckAt = Date()
+            }
+
+            do {
+                let info = try await self.appUpdateService.fetchLatestUpdate(currentVersion: currentVersion)
+                let updateAvailable = info.updateAvailable ??
+                    Self.isVersion(currentVersion, lessThan: info.latestVersion)
+                let updateRequired = info.updateRequired ??
+                    Self.isVersion(currentVersion, lessThan: info.minimumSupportedVersion)
+
+                self.updateStatus = AppUpdateStatus(
+                    latestVersion: info.latestVersion,
+                    minimumSupportedVersion: info.minimumSupportedVersion,
+                    updateAvailable: updateAvailable,
+                    updateRequired: updateRequired,
+                    downloadURL: info.downloadURL,
+                    releaseNotesURL: info.releaseNotesURL
+                )
+                self.updateCheckError = ""
+            } catch {
+                AppLogger.log("Updates: check failed: \(error.localizedDescription)")
+                if force {
+                    self.updateCheckError = error.localizedDescription
+                }
+            }
+        }
+    }
+
     private func loadSecureState() {
         do {
             if let storedSession = try credentialVault.loadAccountSession() {
@@ -664,6 +780,51 @@ final class AppViewModel: ObservableObject {
         let normalized = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return normalized.isEmpty ? nil : normalized
     }
+
+    private static func isVersion(_ left: String?, lessThan right: String) -> Bool {
+        guard let left else {
+            return false
+        }
+
+        return compareVersionStrings(left, right) == .orderedAscending
+    }
+
+    private static func compareVersionStrings(_ left: String, _ right: String) -> ComparisonResult {
+        let leftSegments = parseVersionSegments(left)
+        let rightSegments = parseVersionSegments(right)
+        let maxCount = max(leftSegments.count, rightSegments.count)
+
+        for index in 0..<maxCount {
+            let leftValue = index < leftSegments.count ? leftSegments[index] : 0
+            let rightValue = index < rightSegments.count ? rightSegments[index] : 0
+            if leftValue < rightValue {
+                return .orderedAscending
+            }
+            if leftValue > rightValue {
+                return .orderedDescending
+            }
+        }
+
+        return .orderedSame
+    }
+
+    private static func parseVersionSegments(_ version: String) -> [Int] {
+        let cleaned = version.trimmingCharacters(in: .whitespacesAndNewlines)
+        if cleaned.isEmpty {
+            return [0, 0, 0, 0]
+        }
+
+        let rawSegments = cleaned.split(separator: ".", omittingEmptySubsequences: false)
+        var parsed = rawSegments.map { segment -> Int in
+            Int(segment) ?? 0
+        }
+
+        if parsed.count < 4 {
+            parsed.append(contentsOf: repeatElement(0, count: 4 - parsed.count))
+        }
+
+        return parsed
+    }
 }
 
 private enum AppConfigurationError: LocalizedError {
@@ -687,4 +848,13 @@ enum AccountAuthFlow {
     case none
     case signIn
     case createAccount
+}
+
+struct AppUpdateStatus {
+    let latestVersion: String
+    let minimumSupportedVersion: String
+    let updateAvailable: Bool
+    let updateRequired: Bool
+    let downloadURL: URL?
+    let releaseNotesURL: URL?
 }

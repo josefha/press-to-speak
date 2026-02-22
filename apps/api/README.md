@@ -5,6 +5,7 @@ TypeScript + Express API middle layer for transcription proxying and fast post-p
 ## Current Scope
 
 - `POST /v1/voice-to-text` multipart endpoint
+- `GET /v1/app-updates/macos` update metadata endpoint
 - ElevenLabs STT proxy (server-side API key)
 - OpenAI rewrite pipeline (`gpt-5-mini`) for transcript restructuring
 - Supabase JWT verification middleware (`off` / `optional` / `required` auth modes)
@@ -163,6 +164,27 @@ curl -X POST http://localhost:8787/v1/voice-to-text \
   -F "file=@/absolute/path/to/audio.wav"
 ```
 
+### `GET /v1/app-updates/macos`
+
+Returns mac app update metadata used by desktop clients to surface update notices.
+
+Headers:
+
+- `x-api-key` (required only when `PROXY_SHARED_API_KEY` is configured)
+
+Optional query string:
+
+- `current_version` (dotted numeric version such as `1.4.2`)
+
+Response fields:
+
+- `latest_version`
+- `minimum_supported_version`
+- `update_available` (present when `current_version` is provided)
+- `update_required` (present when `current_version` is provided)
+- `download_url`
+- `release_notes_url`
+
 ## Authentication Modes
 
 - `USER_AUTH_MODE=off`: no Supabase token verification. The API uses `x-user-id` when provided, otherwise `anonymous`.
@@ -196,6 +218,8 @@ Required:
 
 - `ELEVENLABS_API_KEY`
 - `OPENAI_API_KEY`
+- `MAC_APP_LATEST_VERSION` (default `0.1.0`)
+- `MAC_APP_MINIMUM_SUPPORTED_VERSION` (default: same as `MAC_APP_LATEST_VERSION`)
 
 Auth-related:
 
@@ -211,6 +235,11 @@ Auth-related:
 - `PROXY_SHARED_API_KEY` (optional shared ingress key)
 - `AUTH_ROUTE_RATE_LIMIT_WINDOW_MS` (default `60000`)
 - `AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS` (default `20`)
+
+Optional update metadata URLs:
+
+- `MAC_APP_DOWNLOAD_URL`
+- `MAC_APP_RELEASE_NOTES_URL`
 
 Logging controls:
 

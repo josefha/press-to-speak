@@ -10,6 +10,7 @@ This repository now includes the MVP end-to-end flow:
 - AVFoundation microphone recording
 - default `PressToSpeak Account` mode with login/create-account UI
 - PressToSpeak API-backed account auth flow (`/v1/auth/signup|login|refresh|logout`)
+- API-backed update check flow (`/v1/app-updates/macos`) with menu bar "Check for Updates"
 - advanced `Bring Your Own Keys` mode (OpenAI + ElevenLabs keys stored in Keychain)
 - proxy API mode for all transcription traffic
 - automatic paste into active app with clipboard restore
@@ -49,6 +50,8 @@ Edit `.env` and set at least:
 - `TRANSCRIPTION_PROXY_URL`
 - `SUPABASE_URL`
 - `SUPABASE_PUBLISHABLE_KEY`
+
+Update checks use the same API base URL as `TRANSCRIPTION_PROXY_URL` and call `/v1/app-updates/macos`.
 
 Optional:
 
@@ -139,6 +142,12 @@ Output app bundle:
 When run from monorepo root with `make package-app`, output is at:
 
 - `apps/mac/dist/PressToSpeak.app`
+
+Optional version metadata for release packaging:
+
+```bash
+APP_VERSION=0.2.0 APP_BUILD=12 make package-app
+```
 
 Branding notes:
 - Menu bar/header logos are loaded from `Sources/PressToSpeakApp/Resources/Branding/`.

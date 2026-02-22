@@ -31,6 +31,10 @@ describe("account auth routes integration", () => {
       SUPABASE_PUBLISHABLE_KEY,
       SUPABASE_JWT_SECRET: "",
       PROXY_SHARED_API_KEY,
+      MAC_APP_LATEST_VERSION: "2.5.0",
+      MAC_APP_MINIMUM_SUPPORTED_VERSION: "2.3.0",
+      MAC_APP_DOWNLOAD_URL: "https://downloads.presstospeak.com/macos",
+      MAC_APP_RELEASE_NOTES_URL: "https://www.presstospeak.com/releases",
       AUTH_ROUTE_RATE_LIMIT_WINDOW_MS: "60000",
       AUTH_ROUTE_RATE_LIMIT_MAX_REQUESTS: "2"
     });
@@ -205,6 +209,46 @@ describe("account auth routes integration", () => {
     const payload = await third.json();
     assert.equal(payload.error.message, "Rate limit exceeded for auth requests");
   });
+
+  test("update route returns latest version metadata and update flags", async () => {
+    const response = await getJson("/v1/app-updates/macos?current_version=2.2.9", authorizedHeaders());
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+
+    assert.equal(payload.platform, "macos");
+    assert.equal(payload.latest_version, "2.5.0");
+    assert.equal(payload.minimum_supported_version, "2.3.0");
+    assert.equal(payload.update_available, true);
+    assert.equal(payload.update_required, true);
+    assert.equal(payload.download_url, "https://downloads.presstospeak.com/macos");
+    assert.equal(payload.release_notes_url, "https://www.presstospeak.com/releases");
+  });
+
+  test("update route reports no update when current version is latest", async () => {
+    const response = await getJson("/v1/app-updates/macos?current_version=2.5.0", authorizedHeaders());
+
+    assert.equal(response.status, 200);
+    const payload = await response.json();
+    assert.equal(payload.update_available, false);
+    assert.equal(payload.update_required, false);
+  });
+
+  test("update route rejects malformed current version", async () => {
+    const response = await getJson("/v1/app-updates/macos?current_version=2.5-beta", authorizedHeaders());
+
+    assert.equal(response.status, 400);
+    const payload = await response.json();
+    assert.equal(payload.error.message, "Invalid update check query parameters");
+  });
+
+  test("update route requires proxy key when shared key is configured", async () => {
+    const response = await getJson("/v1/app-updates/macos?current_version=2.5.0");
+
+    assert.equal(response.status, 401);
+    const payload = await response.json();
+    assert.equal(payload.error.message, "Missing or invalid proxy API key");
+  });
 });
 
 function authorizedHeaders(rateLimitKey: string = randomUUID()): Record<string, string> {
@@ -227,6 +271,16 @@ async function postJson(
       ...headers
     },
     body: JSON.stringify(body)
+  });
+}
+
+async function getJson(path: string, headers: Record<string, string> = {}): Promise<Response> {
+  return fetch(`${apiBaseUrl}${path}`, {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      ...headers
+    }
   });
 }
 

@@ -16,6 +16,8 @@ ICON_PNG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.png"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
 APP_ENV_FILE="${APP_ENV_FILE:-.env}"
 APP_ENV_REQUIRED="${APP_ENV_REQUIRED:-false}"
+APP_VERSION="${APP_VERSION:-0.1.0}"
+APP_BUILD="${APP_BUILD:-1}"
 
 generate_app_icon() {
   local iconset_dir
@@ -119,9 +121,9 @@ cat > "${CONTENTS_DIR}/Info.plist" <<PLIST
   <key>CFBundlePackageType</key>
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
-  <string>0.1.0</string>
+  <string>${APP_VERSION}</string>
   <key>CFBundleVersion</key>
-  <string>1</string>
+  <string>${APP_BUILD}</string>
   <key>LSMinimumSystemVersion</key>
   <string>14.0</string>
   <key>LSUIElement</key>
