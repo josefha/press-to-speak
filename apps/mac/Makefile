@@ -4,6 +4,7 @@ CODESIGN_IDENTITY ?= Apple Development: Your Name Josef Karakoca
 NOTARY_PROFILE ?=
 PRODUCTION_ENV_FILE ?= .env.production
 PRODUCTION_PROXY_URL ?=
+PRODUCTION_CODESIGN_IDENTITY ?=
 
 .PHONY: run build package-app release-artifacts production-export notarized-release install-local open-app install-and-open clean
 
@@ -20,7 +21,7 @@ release-artifacts: package-app
 	./scripts/build_release_artifacts.sh
 
 production-export:
-	PRODUCTION_ENV_FILE="$(PRODUCTION_ENV_FILE)" PRODUCTION_PROXY_URL="$(PRODUCTION_PROXY_URL)" CODESIGN_IDENTITY="$(CODESIGN_IDENTITY)" ./scripts/build_production_release.sh
+	PRODUCTION_ENV_FILE="$(PRODUCTION_ENV_FILE)" PRODUCTION_PROXY_URL="$(PRODUCTION_PROXY_URL)" CODESIGN_IDENTITY="$(PRODUCTION_CODESIGN_IDENTITY)" ./scripts/build_production_release.sh
 
 notarized-release: release-artifacts
 	NOTARY_PROFILE="$(NOTARY_PROFILE)" ./scripts/notarize_dmg.sh

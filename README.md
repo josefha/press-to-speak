@@ -12,7 +12,7 @@ PressToSpeak -> 200 words per minutes
 2. Open the app and create an account (or log in) with your PressToSpeak.com account.
 3. Start dictating with the default PressToSpeak account mode.
 
-Bring Your Own Keys (BYOK) is also supported for advanced users.
+Bring Your Own Keys (BYOK) is temporarily disabled while account mode is stabilized.
 
 If you want to build and run everything yourself, developer instructions are below.
 

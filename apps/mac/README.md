@@ -10,8 +10,8 @@ This repository now includes the MVP end-to-end flow:
 - AVFoundation microphone recording
 - default `PressToSpeak Account` mode with login/create-account UI
 - PressToSpeak API-backed account auth flow (`/v1/auth/signup|login|refresh|logout`)
-- API-backed update check flow (`/v1/app-updates/macos`) with menu bar "Check for Updates"
-- advanced `Bring Your Own Keys` mode (OpenAI + ElevenLabs keys stored in Keychain)
+- automatic API-backed update checks (`/v1/app-updates/macos`)
+- BYOK mode is temporarily disabled (account mode only)
 - proxy API mode for all transcription traffic
 - automatic paste into active app with clipboard restore
 - menu bar settings and non-Xcode build/package scripts
@@ -74,11 +74,6 @@ Headers by mode:
 
 `PressToSpeak Account` mode:
 - `Authorization: Bearer <supabase-access-token>`
-- optional `x-api-key: <TRANSCRIPTION_PROXY_API_KEY>`
-
-`Bring Your Own Keys` mode:
-- `x-openai-api-key: <OPENAI_API_KEY>`
-- `x-elevenlabs-api-key: <ELEVENLABS_API_KEY>`
 - optional `x-api-key: <TRANSCRIPTION_PROXY_API_KEY>`
 
 Preferred response JSON shape:
@@ -198,13 +193,14 @@ PRODUCTION_PROXY_URL="https://api.your-domain.com/v1/voice-to-text" make product
 Production export behavior:
 - bundles `.env.production` into the app as `Contents/Resources/app.env`
 - avoids shipping local development `.env` values by default
+- exports unsigned by default to avoid accidental local dev-signature mismatch
 - produces `dist/release/*.zip` and `dist/release/*.dmg`
 
 ### Recommended production release flow (signed + notarized)
 
 1. Use a Developer ID identity:
 ```bash
-CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make production-export
+PRODUCTION_CODESIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make production-export
 ```
 
 2. Notarize and staple:

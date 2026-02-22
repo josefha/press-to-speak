@@ -56,7 +56,7 @@ Primary flow:
 ### Transcription providers
 - Primary flow routes transcription through proxy API.
 - `PressToSpeak Account` mode sends Supabase Bearer token.
-- `Bring Your Own Keys` mode sends `x-openai-api-key` + `x-elevenlabs-api-key`.
+- `Bring Your Own Keys` mode is temporarily disabled.
 - Files:
   - `Sources/PressToSpeakInfra/ElevenLabsTranscriptionProvider.swift`
   - `Sources/PressToSpeakInfra/ProxyTranscriptionProvider.swift`
@@ -144,6 +144,7 @@ Supabase auth mode note:
 
 Packaging behavior:
 - packaging script uses `APP_ENV_FILE` (defaults to `.env`) and copies it into app bundle as `Contents/Resources/app.env`.
+- `make production-export` is unsigned by default; pass `PRODUCTION_CODESIGN_IDENTITY="Developer ID Application: ..."` to sign production artifacts.
 - SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
 - App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg` (fallback `logo-dark.png`).
 - `AppConfiguration` loads bundled env + working directory env + process env.

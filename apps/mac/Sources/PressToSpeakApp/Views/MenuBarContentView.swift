@@ -77,48 +77,6 @@ struct MenuBarContentView: View {
                 .font(AppTypography.body(size: 12))
                 .foregroundStyle(AppPalette.mutedText)
 
-            if viewModel.isCheckingForUpdates {
-                Text("Checking for updates...")
-                    .font(AppTypography.body(size: 12))
-                    .foregroundStyle(AppPalette.mutedText)
-            } else if viewModel.isUpdateRequired {
-                Text("Required update available: \(viewModel.latestVersionLabel)")
-                    .font(AppTypography.body(size: 12))
-                    .foregroundStyle(AppPalette.warning)
-            } else if viewModel.isUpdateAvailable {
-                Text("Update available: \(viewModel.latestVersionLabel)")
-                    .font(AppTypography.body(size: 12))
-                    .foregroundStyle(AppPalette.success)
-            } else if viewModel.updateStatus != nil {
-                Text("You are up to date.")
-                    .font(AppTypography.body(size: 12))
-                    .foregroundStyle(AppPalette.mutedText)
-            }
-
-            if !viewModel.updateCheckError.isEmpty {
-                Text(viewModel.updateCheckError)
-                    .font(AppTypography.body(size: 12))
-                    .foregroundStyle(AppPalette.error)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Button(viewModel.isCheckingForUpdates ? "Checking for Updates..." : "Check for Updates") {
-                viewModel.checkForUpdatesManually()
-            }
-            .disabled(viewModel.isCheckingForUpdates)
-
-            if viewModel.canOpenUpdateDownload {
-                Button(viewModel.isUpdateRequired ? "Download Required Update" : "Download Latest Update") {
-                    viewModel.openUpdateDownloadPage()
-                }
-            }
-
-            if viewModel.canOpenUpdateReleaseNotes {
-                Button("View Release Notes") {
-                    viewModel.openUpdateReleaseNotes()
-                }
-            }
-
             Divider()
 
             Button("Open PressToSpeak") {

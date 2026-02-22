@@ -23,8 +23,6 @@ final class AppViewModel: ObservableObject {
     @Published private(set) var accountAuthFlow: AccountAuthFlow = .none
     @Published private(set) var accountAuthError: String = ""
     @Published var showAdvancedModeOptions = false
-    @Published var bringYourOwnOpenAIKeyInput: String = ""
-    @Published var bringYourOwnElevenLabsKeyInput: String = ""
     @Published private(set) var isCheckingForUpdates = false
     @Published private(set) var updateCheckError: String = ""
     @Published private(set) var updateStatus: AppUpdateStatus?
@@ -45,6 +43,7 @@ final class AppViewModel: ObservableObject {
     private var accountStateRefreshTask: Task<Void, Never>?
     private var accessibilityStateRefreshTask: Task<Void, Never>?
     private var lastUpdateCheckAt: Date?
+    private let automaticUpdateCheckIntervalSeconds: TimeInterval = 5
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -119,6 +118,13 @@ final class AppViewModel: ObservableObject {
                 self.refreshAccessibilityPermission()
             }
             .store(in: &cancellables)
+
+        Timer.publish(every: automaticUpdateCheckIntervalSeconds, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.checkForUpdatesIfNeeded()
+            }
+            .store(in: &cancellables)
     }
 
     var statusLabel: String {
@@ -176,11 +182,6 @@ final class AppViewModel: ObservableObject {
             return "P"
         }
         return String(first).uppercased()
-    }
-
-    var hasStoredBringYourOwnKeys: Bool {
-        normalizedNonEmpty(bringYourOwnOpenAIKeyInput) != nil &&
-            normalizedNonEmpty(bringYourOwnElevenLabsKeyInput) != nil
     }
 
     var isAccountAuthConfigured: Bool {
@@ -264,7 +265,7 @@ final class AppViewModel: ObservableObject {
             status = .transcribing
 
             do {
-                let provider = try await selectedProvider(mode: settings.apiMode)
+                let provider = try await selectedProvider()
                 let orchestrator = TranscriptionOrchestrator(
                     recorder: recorder,
                     provider: provider,
@@ -525,69 +526,19 @@ final class AppViewModel: ObservableObject {
         }
     }
 
-    func saveBringYourOwnProviderKeys() {
-        guard
-            let openAIKey = normalizedNonEmpty(bringYourOwnOpenAIKeyInput),
-            let elevenLabsKey = normalizedNonEmpty(bringYourOwnElevenLabsKeyInput)
-        else {
-            lastError = "Both OpenAI and ElevenLabs keys are required in BYOK mode."
-            return
-        }
-
-        do {
-            try credentialVault.saveBringYourOwnProviderKeys(
-                openAIAPIKey: openAIKey,
-                elevenLabsAPIKey: elevenLabsKey
-            )
-            bringYourOwnOpenAIKeyInput = openAIKey
-            bringYourOwnElevenLabsKeyInput = elevenLabsKey
-            lastError = ""
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    func clearBringYourOwnProviderKeys() {
-        do {
-            try credentialVault.clearBringYourOwnProviderKeys()
-            bringYourOwnOpenAIKeyInput = ""
-            bringYourOwnElevenLabsKeyInput = ""
-        } catch {
-            lastError = error.localizedDescription
-        }
-    }
-
-    private func selectedProvider(mode: APIMode) async throws -> TranscriptionProvider {
+    private func selectedProvider() async throws -> TranscriptionProvider {
         guard configuration.proxyURL != nil else {
             throw AppConfigurationError.proxyURLRequired
         }
 
-        switch mode {
-        case .pressToSpeakAccount:
-            let session = try await resolveActiveAccountSession()
+        let session = try await resolveActiveAccountSession()
 
-            return ProxyTranscriptionProvider(
-                configuration: configuration,
-                additionalHeaders: [
-                    "Authorization": "Bearer \(session.accessToken)"
-                ]
-            )
-        case .bringYourOwnKeys:
-            guard
-                let openAIKey = normalizedNonEmpty(bringYourOwnOpenAIKeyInput),
-                let elevenLabsKey = normalizedNonEmpty(bringYourOwnElevenLabsKeyInput)
-            else {
-                throw AppConfigurationError.bringYourOwnKeysRequired
-            }
-
-            return ProxyTranscriptionProvider(
-                configuration: configuration,
-                additionalHeaders: [
-                    "x-openai-api-key": openAIKey,
-                    "x-elevenlabs-api-key": elevenLabsKey
-                ]
-            )
-        }
+        return ProxyTranscriptionProvider(
+            configuration: configuration,
+            additionalHeaders: [
+                "Authorization": "Bearer \(session.accessToken)"
+            ]
+        )
     }
 
     private func resolveActiveAccountSession() async throws -> PressToSpeakAccountSession {
@@ -644,7 +595,7 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        if !force, let lastUpdateCheckAt, Date().timeIntervalSince(lastUpdateCheckAt) < 6 * 60 * 60 {
+        if !force, let lastUpdateCheckAt, Date().timeIntervalSince(lastUpdateCheckAt) < automaticUpdateCheckIntervalSeconds {
             return
         }
 
@@ -695,10 +646,6 @@ final class AppViewModel: ObservableObject {
             if let storedSession = try credentialVault.loadAccountSession() {
                 applySignedInSession(storedSession)
             }
-
-            let byok = try credentialVault.loadBringYourOwnProviderKeys()
-            bringYourOwnOpenAIKeyInput = byok.openAIAPIKey ?? ""
-            bringYourOwnElevenLabsKeyInput = byok.elevenLabsAPIKey ?? ""
         } catch {
             accountAuthError = error.localizedDescription
         }
@@ -829,15 +776,12 @@ final class AppViewModel: ObservableObject {
 
 private enum AppConfigurationError: LocalizedError {
     case accountSignInRequired
-    case bringYourOwnKeysRequired
     case proxyURLRequired
 
     var errorDescription: String? {
         switch self {
         case .accountSignInRequired:
             return "PressToSpeak Account mode requires signing in first."
-        case .bringYourOwnKeysRequired:
-            return "Bring Your Own Keys mode requires both OpenAI and ElevenLabs keys."
         case .proxyURLRequired:
             return "TRANSCRIPTION_PROXY_URL is required."
         }
