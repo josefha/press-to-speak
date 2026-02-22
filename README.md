@@ -56,6 +56,7 @@ make mac-run              # run from SwiftPM (no install)
 make mac-build-binary     # build .build/release/PressToSpeakApp
 make mac-build-app        # package apps/mac/dist/PressToSpeak.app
 make mac-production-export # build website artifacts with apps/mac/.env.production
+make clean-mac-local      # remove /Applications/PressToSpeak.app and apps/mac/dist
 make mac-install-app      # install /Applications/PressToSpeak.app
 make mac-open-app         # open /Applications/PressToSpeak.app
 make mac-install-and-open # install, then open

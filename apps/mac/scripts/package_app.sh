@@ -11,6 +11,7 @@ MACOS_DIR="${CONTENTS_DIR}/MacOS"
 RESOURCES_DIR="${CONTENTS_DIR}/Resources"
 ICON_NAME="AppIcon"
 ICON_FILE="${RESOURCES_DIR}/${ICON_NAME}.icns"
+ICON_APPICONSET_SOURCE="Sources/PressToSpeakApp/Resources/Branding/AppIcon.appiconset"
 ICON_SVG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg"
 ICON_PNG_SOURCE="Sources/PressToSpeakApp/Resources/Branding/logo-dark.png"
 CODESIGN_IDENTITY="${CODESIGN_IDENTITY:-}"
@@ -24,6 +25,29 @@ generate_app_icon() {
   local working_dir
   local source_png
   local source_filename
+
+  # Prefer explicit appiconset assets if present.
+  if [[ -d "${ICON_APPICONSET_SOURCE}" ]] && command -v iconutil >/dev/null 2>&1; then
+    working_dir="$(mktemp -d)"
+    iconset_dir="${working_dir}/${ICON_NAME}.iconset"
+    mkdir -p "${iconset_dir}"
+
+    cp "${ICON_APPICONSET_SOURCE}/16.png" "${iconset_dir}/icon_16x16.png"
+    cp "${ICON_APPICONSET_SOURCE}/32.png" "${iconset_dir}/icon_16x16@2x.png"
+    cp "${ICON_APPICONSET_SOURCE}/32.png" "${iconset_dir}/icon_32x32.png"
+    cp "${ICON_APPICONSET_SOURCE}/64.png" "${iconset_dir}/icon_32x32@2x.png"
+    cp "${ICON_APPICONSET_SOURCE}/128.png" "${iconset_dir}/icon_128x128.png"
+    cp "${ICON_APPICONSET_SOURCE}/256.png" "${iconset_dir}/icon_128x128@2x.png"
+    cp "${ICON_APPICONSET_SOURCE}/256.png" "${iconset_dir}/icon_256x256.png"
+    cp "${ICON_APPICONSET_SOURCE}/512.png" "${iconset_dir}/icon_256x256@2x.png"
+    cp "${ICON_APPICONSET_SOURCE}/512.png" "${iconset_dir}/icon_512x512.png"
+    cp "${ICON_APPICONSET_SOURCE}/1024.png" "${iconset_dir}/icon_512x512@2x.png"
+
+    iconutil -c icns "${iconset_dir}" -o "${ICON_FILE}"
+    echo "Generated app icon from ${ICON_APPICONSET_SOURCE}"
+    rm -rf "${working_dir}"
+    return
+  fi
 
   working_dir="$(mktemp -d)"
   iconset_dir="${working_dir}/${ICON_NAME}.iconset"

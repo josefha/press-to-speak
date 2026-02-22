@@ -6,7 +6,7 @@ PRODUCTION_ENV_FILE ?= .env.production
 PRODUCTION_PROXY_URL ?=
 PRODUCTION_CODESIGN_IDENTITY ?=
 
-.PHONY: run build package-app release-artifacts production-export notarized-release install-local open-app install-and-open clean
+.PHONY: run build package-app release-artifacts production-export notarized-release install-local open-app install-and-open clean clean-mac-local
 
 run:
 	swift run $(PRODUCT)
@@ -43,6 +43,11 @@ open-app:
 	fi
 
 install-and-open: install-local open-app
+
+clean-mac-local:
+	@pkill -x "$(APP_NAME)" >/dev/null 2>&1 || true
+	rm -rf /Applications/$(APP_NAME).app dist
+	@echo "Removed /Applications/$(APP_NAME).app and apps/mac/dist"
 
 clean:
 	rm -rf .build dist

@@ -147,7 +147,7 @@ APP_VERSION=0.2.0 APP_BUILD=12 make package-app
 Branding notes:
 - Menu bar/header logos are loaded from `Sources/PressToSpeakApp/Resources/Branding/`.
 - App theme tokens (colors, typography, button system) are documented in `docs/brand-guidelines.md`.
-- Packaging generates `Contents/Resources/AppIcon.icns` from `logo-dark.svg` (fallback `logo-dark.png`) and sets `CFBundleIconFile`.
+- Packaging generates `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/AppIcon.appiconset` (fallback `logo-dark.svg` / `logo-dark.png`) and sets `CFBundleIconFile`.
 - SwiftPM resource bundles are copied into `Contents/Resources/` during packaging.
 
 ## Website Distribution (Outside App Store)
@@ -230,6 +230,12 @@ make install-local
 App install target:
 
 - `/Applications/PressToSpeak.app`
+
+Clean local install + local packaged artifacts:
+
+```bash
+make clean-mac-local
+```
 
 ### Permission Persistence During Testing
 

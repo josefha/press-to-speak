@@ -105,17 +105,22 @@ make package-app
 make install-local
 ```
 
-5. Build production website distribution artifacts (recommended):
+5. Clean local install and local dist artifacts:
+```bash
+make clean-mac-local
+```
+
+6. Build production website distribution artifacts (recommended):
 ```bash
 make production-export
 ```
 
-6. Build website distribution artifacts from current packaged app:
+7. Build website distribution artifacts from current packaged app:
 ```bash
 make release-artifacts
 ```
 
-7. Notarize release artifacts (after Developer ID signing):
+8. Notarize release artifacts (after Developer ID signing):
 ```bash
 NOTARY_PROFILE=\"press-to-speak-notary\" make notarized-release
 ```
@@ -146,7 +151,7 @@ Packaging behavior:
 - packaging script uses `APP_ENV_FILE` (defaults to `.env`) and copies it into app bundle as `Contents/Resources/app.env`.
 - `make production-export` is unsigned by default; pass `PRODUCTION_CODESIGN_IDENTITY="Developer ID Application: ..."` to sign production artifacts.
 - SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
-- App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/logo-dark.svg` (fallback `logo-dark.png`).
+- App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/AppIcon.appiconset` (fallback `logo-dark.svg` / `logo-dark.png`).
 - `AppConfiguration` loads bundled env + working directory env + process env.
 
 ## Permission / TCC Notes
