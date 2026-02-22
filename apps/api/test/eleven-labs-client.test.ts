@@ -156,6 +156,32 @@ describe("elevenLabsClient", () => {
       }
     );
   });
+
+  test("accepts empty transcript text as a valid provider response", async () => {
+    plannedResponses = [
+      {
+        statusCode: 200,
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          language_code: "en",
+          language_probability: 0,
+          text: "",
+          words: [],
+          transcription_id: "transcription-empty"
+        })
+      }
+    ];
+
+    const result = await transcribeWithElevenLabs({
+      fileBuffer: Buffer.from("fake-audio"),
+      fileName: "sample.wav",
+      mimeType: "audio/wav"
+    });
+
+    assert.equal(result.rawText, "");
+    assert.equal(result.modelId, "scribe_v2");
+    assert.equal(requestCount, 1);
+  });
 });
 
 function createMockElevenLabsServer(): Server {

@@ -105,7 +105,7 @@ async function sendTranscriptionRequest(input: {
     }
 
     const rawText = extractTranscriptText(payload);
-    if (!rawText) {
+    if (rawText === null) {
       throw new HttpError(502, "ElevenLabs response did not include transcript text", {
         payload
       });
@@ -256,12 +256,19 @@ function extractTranscriptText(payload: unknown): string | null {
   }
 
   const data = payload as Record<string, unknown>;
+  let sawTranscriptField = false;
   for (const key of TEXT_KEYS) {
     const value = data[key];
-    if (typeof value === "string" && value.trim()) {
-      return value.trim();
+    if (typeof value !== "string") {
+      continue;
+    }
+
+    sawTranscriptField = true;
+    const normalized = value.trim();
+    if (normalized.length > 0) {
+      return normalized;
     }
   }
 
-  return null;
+  return sawTranscriptField ? "" : null;
 }

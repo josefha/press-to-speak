@@ -42,8 +42,6 @@ final class AppViewModel: ObservableObject {
     private var accountSession: PressToSpeakAccountSession?
     private var accountStateRefreshTask: Task<Void, Never>?
     private var accessibilityStateRefreshTask: Task<Void, Never>?
-    private var lastUpdateCheckAt: Date?
-    private let automaticUpdateCheckIntervalSeconds: TimeInterval = 5
 
     private var cancellables = Set<AnyCancellable>()
 
@@ -119,12 +117,6 @@ final class AppViewModel: ObservableObject {
             }
             .store(in: &cancellables)
 
-        Timer.publish(every: automaticUpdateCheckIntervalSeconds, on: .main, in: .common)
-            .autoconnect()
-            .sink { [weak self] _ in
-                self?.checkForUpdatesIfNeeded()
-            }
-            .store(in: &cancellables)
     }
 
     var statusLabel: String {
@@ -338,7 +330,6 @@ final class AppViewModel: ObservableObject {
 
     func refreshUIStateOnOpen() {
         refreshAccessibilityPermission()
-        checkForUpdatesIfNeeded()
 
         accessibilityStateRefreshTask?.cancel()
         accessibilityStateRefreshTask = Task { [weak self] in
@@ -595,10 +586,6 @@ final class AppViewModel: ObservableObject {
             return
         }
 
-        if !force, let lastUpdateCheckAt, Date().timeIntervalSince(lastUpdateCheckAt) < automaticUpdateCheckIntervalSeconds {
-            return
-        }
-
         isCheckingForUpdates = true
         if force {
             updateCheckError = ""
@@ -613,7 +600,6 @@ final class AppViewModel: ObservableObject {
 
             defer {
                 self.isCheckingForUpdates = false
-                self.lastUpdateCheckAt = Date()
             }
 
             do {
