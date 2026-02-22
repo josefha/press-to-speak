@@ -54,14 +54,36 @@ export async function processVoiceToText(input: VoiceToTextInput): Promise<Voice
   );
 
   const sttStartedAt = Date.now();
-  const sttResult = await transcribeWithElevenLabs({
-    fileBuffer: input.fileBuffer,
-    fileName: input.fileName,
-    mimeType: input.mimeType,
-    options: input.sttOptions,
-    apiKey: input.providerOverrides?.elevenLabsApiKey,
-    baseUrl: input.providerOverrides?.elevenLabsBaseUrl
-  });
+  let sttResult: Awaited<ReturnType<typeof transcribeWithElevenLabs>>;
+  try {
+    sttResult = await transcribeWithElevenLabs({
+      fileBuffer: input.fileBuffer,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      options: input.sttOptions,
+      apiKey: input.providerOverrides?.elevenLabsApiKey,
+      baseUrl: input.providerOverrides?.elevenLabsBaseUrl
+    });
+  } catch (error) {
+    const sttLatencyMs = Date.now() - sttStartedAt;
+    const sttError = error instanceof Error ? error.message : String(error);
+    const sttErrorDetails = error instanceof HttpError ? error.details : undefined;
+    const sttErrorStatusCode = error instanceof HttpError ? error.statusCode : undefined;
+    const sttFailureLog: Record<string, unknown> = {
+      stage: "elevenlabs_stt",
+      sttLatencyMs,
+      sttStatus: "failed",
+      sttError
+    };
+    if (sttErrorStatusCode !== undefined) {
+      sttFailureLog.sttErrorStatusCode = sttErrorStatusCode;
+    }
+    if (sttErrorDetails !== undefined) {
+      sttFailureLog.sttErrorDetails = buildPayloadPreview(sttErrorDetails);
+    }
+    requestLogger.error(sttFailureLog, "ElevenLabs transcription failed");
+    throw error;
+  }
   const sttLatencyMs = Date.now() - sttStartedAt;
 
   const sttLog: Record<string, unknown> = {

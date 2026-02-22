@@ -103,8 +103,8 @@ const envSchema = z
 
     ELEVENLABS_API_KEY: z.string().min(1, "ELEVENLABS_API_KEY is required"),
     ELEVENLABS_API_BASE_URL: z.string().url().default("https://api.elevenlabs.io"),
-    ELEVENLABS_MODEL_ID: z.string().min(1).default("scribe_v1"),
-    TRANSCRIPTION_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
+    ELEVENLABS_MODEL_ID: z.string().min(1).default("scribe_v2"),
+    TRANSCRIPTION_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(20000),
     TRANSCRIPTION_MAX_FILE_BYTES: z.coerce.number().int().positive().default(25 * 1024 * 1024),
 
     OPENAI_API_KEY: z.string().min(1, "OPENAI_API_KEY is required"),

@@ -20,6 +20,8 @@ services:
         value: "false"
       - key: LOG_PROVIDER_PAYLOADS
         value: "false"
+      - key: ELEVENLABS_MODEL_ID
+        value: scribe_v2
       - key: OPENAI_MODEL
         value: gpt-5-mini
       - key: MAC_APP_LATEST_VERSION

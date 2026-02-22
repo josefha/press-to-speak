@@ -17,15 +17,17 @@ public struct AppConfiguration {
             dotenv.merge(DotEnvLoader.load(url: bundleEnvURL)) { _, new in new }
         }
 
-        let workingDirectoryEnv = DotEnvLoader.loadDefaultWorkingDirectoryEnv(fileManager: fileManager)
-        dotenv.merge(workingDirectoryEnv) { _, new in new }
+        if AppConfiguration.shouldLoadWorkingDirectoryEnv(processEnvironment: processInfo.environment) {
+            let workingDirectoryEnv = DotEnvLoader.loadDefaultWorkingDirectoryEnv(fileManager: fileManager)
+            dotenv.merge(workingDirectoryEnv) { _, new in new }
+        }
 
         let env = AppConfiguration.resolveEnvironment(processEnvironment: processInfo.environment, dotenv: dotenv)
 
         self.elevenLabsAPIKey = env["ELEVENLABS_API_KEY"]
         self.elevenLabsBaseURL = URL(string: env["ELEVENLABS_API_BASE_URL"] ?? "https://api.elevenlabs.io")
             ?? URL(string: "https://api.elevenlabs.io")!
-        self.elevenLabsModelID = env["ELEVENLABS_MODEL_ID"] ?? "scribe_v1"
+        self.elevenLabsModelID = env["ELEVENLABS_MODEL_ID"] ?? "scribe_v2"
 
         if let rawProxy = env["TRANSCRIPTION_PROXY_URL"], !rawProxy.isEmpty {
             self.proxyURL = URL(string: rawProxy)
@@ -69,4 +71,19 @@ public struct AppConfiguration {
         return trimmed.isEmpty ? nil : trimmed
     }
 
+    private static func shouldLoadWorkingDirectoryEnv(processEnvironment: [String: String]) -> Bool {
+        if let rawOverride = processEnvironment["PRESS_TO_SPEAK_LOAD_WORKING_DIR_ENV"] {
+            let normalized = rawOverride.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            if normalized == "1" || normalized == "true" || normalized == "yes" || normalized == "on" {
+                return true
+            }
+            if normalized == "0" || normalized == "false" || normalized == "no" || normalized == "off" {
+                return false
+            }
+        }
+
+        // Bundled .app installs should avoid probing current working directory paths
+        // (for example Desktop/Documents) to prevent unnecessary TCC file prompts.
+        return !Bundle.main.bundlePath.hasSuffix(".app")
+    }
 }

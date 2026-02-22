@@ -152,7 +152,8 @@ Packaging behavior:
 - `make production-export` is unsigned by default; pass `PRODUCTION_CODESIGN_IDENTITY="Developer ID Application: ..."` to sign production artifacts.
 - SwiftPM resource bundles are copied into app bundle `Contents/Resources/`.
 - App icon is generated as `Contents/Resources/AppIcon.icns` from `Sources/PressToSpeakApp/Resources/Branding/AppIcon.appiconset` (fallback `logo-dark.svg` / `logo-dark.png`).
-- `AppConfiguration` loads bundled env + working directory env + process env.
+- Release DMG is styled (fixed icon positions + drag-to-install background) via `scripts/build_release_artifacts.sh`, with default background `scripts/assets/dmg-background.svg`.
+- `AppConfiguration` loads bundled env + process env for `.app` installs (working-directory `.env` is only loaded for non-bundled dev runs, or when `PRESS_TO_SPEAK_LOAD_WORKING_DIR_ENV=true` is set).
 
 ## Permission / TCC Notes
 

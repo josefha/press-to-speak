@@ -172,6 +172,14 @@ Outputs:
 - `dist/release/PressToSpeak-<version>-macOS.zip`
 - `dist/release/PressToSpeak-<version>-macOS.dmg`
 
+DMG layout notes:
+- DMG window is styled for drag-to-install with fixed icon positions and background.
+- Default background asset: `scripts/assets/dmg-background.svg`.
+- Optional override:
+```bash
+DMG_BACKGROUND_IMAGE=/absolute/path/to/background.png make release-artifacts
+```
+
 ### Production export with a separate API URL (recommended)
 
 1. Configure production env values in `.env.production`:
